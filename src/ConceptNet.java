@@ -13,9 +13,11 @@
 // also along those lines: could turn relation type into an enum instead of having
 //             strings like ConceptuallyRelatedTo stored literally every time
 
-import java.io.FileReader;
 import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.zip.GZIPInputStream;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 import java.util.Map;
@@ -30,11 +32,11 @@ import java.util.HashSet;
 public class ConceptNet
 {
    private static final String[] FILENAMES =
-      new String[] { "conceptnet_singlewords.txt" };
-/*      new String[] { "predicates_concise_kline.txt",
-                     "predicates_concise_nonkline.txt",
-                     "predicates_nonconcise_kline.txt",
-                     "predicates_nonconcise_nonkline.txt" };
+      new String[] { "conceptnet_singlewords.txt.gz" };
+/*      new String[] { "predicates_concise_kline.txt.gz",
+                     "predicates_concise_nonkline.txt.gz",
+                     "predicates_nonconcise_kline.txt.gz",
+                     "predicates_nonconcise_nonkline.txt.gz" };
                      */
 
    public class Relation
@@ -70,7 +72,7 @@ public class ConceptNet
       int count = 0;
       for (String filename : FILENAMES)
       {
-         BufferedReader file = new BufferedReader(new FileReader(filename));
+	 BufferedReader file = new BufferedReader(new InputStreamReader(new GZIPInputStream(new FileInputStream(filename))));
 
          for (String s = file.readLine(); s != null; s = file.readLine())
          {
