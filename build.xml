@@ -1,0 +1,64 @@
+<?xml version="1.0"?>
+
+<project name="warioware" default="dist" basedir=".">
+
+    <!-- Set up the classpaths -->
+    <path id="build.classpath">
+        <pathelement location="build" />
+        <fileset dir="lib">
+           <include name="**/*.jar" />
+        </fileset>
+    </path>
+
+    <!-- Targets: init, compile, dist, and javadoc -->
+
+    <target name="init">
+        <tstamp/>
+        <mkdir dir="build" />
+    </target>
+
+    <target name="compile" depends="init">
+        <javac srcdir="src" destdir="build" classpathref="build.classpath" 
+            debug="yes" />
+    </target>
+
+    <target name="dist" depends="compile">
+        <mkdir dir="dist" />
+
+        <jar destfile="dist/gui.jar" basedir="build" includes="**/*.class">
+           <zipfileset src="lib/jgraph.jar" includes="**/*.class" />
+           <manifest>
+              <attribute name="Main-Class" value="gui" />
+           </manifest>
+        </jar>
+
+        <jar destfile="dist/solver.jar" basedir="build" includes="**/*.class">
+           <zipfileset src="lib/jgraph.jar" includes="**/*.class" />
+           <manifest>
+              <attribute name="Main-Class" value="solver" />
+           </manifest>
+        </jar>
+        
+        <copy todir="dist" preservelastmodified="true">
+            <fileset dir="datafiles" />
+        </copy>
+
+        <mkdir dir="dist/wordnet" />
+        <copy todir="dist/wordnet" preservelastmodified="true">
+            <fileset dir="wordnet" />
+        </copy>
+    </target>
+
+    <target name="javadoc">
+        <mkdir dir="javadoc" />
+        <javadoc destdir="javadoc" classpathref="build.classpath">
+            <fileset dir="src" />
+        </javadoc>
+    </target>
+
+    <target name="clean">
+        <delete dir="build" />
+        <delete dir="dist" />
+        <delete dir="javadoc" />
+    </target>
+</project>
