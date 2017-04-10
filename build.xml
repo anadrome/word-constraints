@@ -32,7 +32,7 @@
            </manifest>
         </jar>
 
-        <jar destfile="dist/solver.jar" basedir="build" includes="**/*.class">
+        <jar destfile="dist/solver.jar" basedir="build" includes="**/*.class" excludes="**/gui*.class **/SepComboBox*.class">
            <manifest>
               <attribute name="Main-Class" value="solver" />
            </manifest>
