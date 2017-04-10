@@ -26,7 +26,7 @@
         <mkdir dir="dist" />
 
         <jar destfile="dist/gui.jar" basedir="build" includes="**/*.class">
-           <zipfileset src="lib/jgraph.jar" includes="**/*.class" />
+           <zipfileset src="lib/jgraph-5.13.0.0.jar" includes="**/*.class" />
            <manifest>
               <attribute name="Main-Class" value="gui" />
            </manifest>

@@ -1,6 +1,6 @@
 Word constraint tool, using ConceptNet and WordNet
 ===
-Mark J. Nelson <http://www.kmjn.org>, 2008
+Mark J. Nelson <http://www.kmjn.org>, 2007-2008, 2017
 
 Used to define a generative space of interrelated sets of terms by using
 ConceptNet and WordNet to specify constraints on the terms and their
@@ -15,8 +15,9 @@ are mapped to game sprites), described in the following paper:
   Intelligent User Interfaces, pages 90-98.
   http://www.kmjn.org/publications/Assistant_IUI08-abstract.html
 
-Included dependencies:
-* JGraph by JGraph Ltd. <http://www.jgraph.com/>
+Bundled dependencies:
+* JGraph by [JGraph Ltd.](http://www.jgraph.com/). Uses the old version now
+  called [legacy JGraph](https://github.com/jgraph/legacy-jgraph5).
 * JWordNet by Oliver Steele
 * ConceptNet by the MIT Common Sense Computing Initiative <http://conceptnet.media.mit.edu/>
 * WordNet by the Princeton Cognitive Science Laboratory <http://wordnet.princeton.edu/>
