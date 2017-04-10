@@ -91,7 +91,7 @@ public class gui
        */
       public boolean isForceMarqueeEvent(MouseEvent e)
       {
-         if (SwingUtilities.isMiddleMouseButton(e) || SwingUtilities.isRightMouseButton(e))
+         if (SwingUtilities.isMiddleMouseButton(e) || e.isPopupTrigger())
             return true;
          return super.isForceMarqueeEvent(e);
       }
@@ -106,13 +106,26 @@ public class gui
             showFileMenu(e.getPoint());
          }
 
-         if (SwingUtilities.isRightMouseButton(e))
+         if (e.isPopupTrigger())
          {
             showEditMenu(e.getPoint());
          }
          else
          {
             super.mousePressed(e);
+         }
+      }
+
+      // On some platforms, context menus get triggered on mouse release rather than press
+      public void mouseReleased(MouseEvent e)
+      {
+         if (e.isPopupTrigger())
+         {
+            showEditMenu(e.getPoint());
+         }
+         else
+         {
+            super.mouseReleased(e);
          }
       }
    }
