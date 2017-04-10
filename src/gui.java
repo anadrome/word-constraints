@@ -101,386 +101,394 @@ public class gui
        */
       public void mousePressed(MouseEvent e)
       {
-         if (SwingUtilities.isMiddleMouseButton(e)) // system/file stuff
+         if (SwingUtilities.isMiddleMouseButton(e))
          {
-            final JPopupMenu menu = new JPopupMenu();
-
-            menu.add(new AbstractAction("Load Constraint Space") {
-               public void actionPerformed(ActionEvent e) {
-                  final int returnVal = fc.showOpenDialog(frame);
-                  if (returnVal == JFileChooser.APPROVE_OPTION)
-                  {
-                     File file = fc.getSelectedFile();
-                     loadGraph(file);
-                  }
-               }
-            });
-
-            menu.add(new AbstractAction("Save Constraint Space") {
-               public void actionPerformed(ActionEvent e) {
-                  final int returnVal = fc.showSaveDialog(frame);
-                  if (returnVal == JFileChooser.APPROVE_OPTION)
-                  {
-                     File file = fc.getSelectedFile();
-                     saveGraph(file);
-                  }
-               }
-            });
-            menu.show(graph, e.getX(), e.getY());
+            showFileMenu(e.getPoint());
          }
 
-         if (SwingUtilities.isRightMouseButton(e)) // the graph-manipulation stuff
+         if (SwingUtilities.isRightMouseButton(e))
          {
-            // set up some variables: point is the point clicked on; cell the cell at that point, if any
-            final Point point = e.getPoint();
-            final DefaultGraphCell cell = (DefaultGraphCell) graph.getFirstCellForLocation(point.getX(), point.getY());
-            final JPopupMenu menu = new JPopupMenu();
-
-            menu.add(new AbstractAction("New variable") {
-               public void actionPerformed(ActionEvent e) {
-                  final JComboBox typeSelect = new JComboBox(varTypes);
-                  final JTextField nameInput = new JTextField("");
-                  final JCheckBox useDefaults = new JCheckBox("Use default possible values");
-                  final JTextField valuesInput = new JTextField("");
-                  final Object components[] = {
-                     new JLabel("Variable type:"),
-                     typeSelect,
-                     new JLabel("Variable name:"),
-                     nameInput,
-                     useDefaults,
-                     new JLabel("Possible values (comma-separated, if not using defaults):"),
-                     valuesInput
-                  };
-
-                  int okOrCancel =
-                     JOptionPane.showOptionDialog(frame, components,
-                        "New verb", JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE, null, null, null);
-                  if (okOrCancel == JOptionPane.CANCEL_OPTION)
-                     return;
-
-                  final String type = (String) typeSelect.getSelectedItem();
-                  final String name = nameInput.getText();
-
-                  Variable var = null;
-                  if (useDefaults.isSelected())
-                  {
-                     var = new Variable(name, type);
-                  }
-                  else
-                  {
-                     final String values = valuesInput.getText();
-                     // TODO: check that input is valid, e.g. no spaces in variable names
-
-                     var = new Variable(name, type, Arrays.asList(values.split(", ?")));
-                  }
-
-                  solver.addVariable(var);
-                  addVarCell(var, point);
-               }
-            });
-
-            menu.add(new AbstractAction("New string literal") {
-               public void actionPerformed(ActionEvent e) {
-                  final JTextField nameInput = new JTextField("");
-                  final Object components[] = {
-                     new JLabel("String literal:"),
-                     nameInput
-                  };
-
-                  int okOrCancel =
-                     JOptionPane.showOptionDialog(frame, components,
-                        "New string literal", JOptionPane.OK_CANCEL_OPTION,
-                        JOptionPane.QUESTION_MESSAGE, null, null, null);
-                  if (okOrCancel == JOptionPane.CANCEL_OPTION)
-                     return;
-
-                  final String name = nameInput.getText();
-
-                  addLiteralCell(name, point);
-               }
-            });
-               
-
-            if (cell != null)
-            {
-               // TODO: remove when we're sure we don't need, was a hack to set the border on some cells for screenshots
-//               menu.add(new AbstractAction("Set border") {
-//                  public void actionPerformed(ActionEvent e) {
-//                     AttributeMap att = new AttributeMap();
-//                     GraphConstants.setBorder(att, BorderFactory.createLineBorder(Color.black, 2));
-//                     graph.getGraphLayoutCache().editCell(cell, att);
-//                  }
-//               });
-
-               final Object cellUserObject = cell.getUserObject();
-               if (cellUserObject instanceof Variable)
-               {
-                  menu.add(new AbstractAction("Remove Variable") {
-                     public void actionPerformed(ActionEvent e) {
-                        // remove from the underlying constraint solver, which
-                        // auto-removes all relevant constraints too
-                        solver.removeVariable((Variable)cellUserObject);
-
-                        // remove the cell and relevant constraints from the
-                        // graph, including the constraint-labeling cells and
-                        // their edges
-                        
-                        // get a list of the constraint cells to remove
-                        final Object[] outgoingEdges = DefaultGraphModel.getOutgoingEdges(model, cell);
-                        final Object[] incomingEdges = DefaultGraphModel.getIncomingEdges(model, cell);
-                        List constraintCells = new ArrayList();
-                        for (Object out : outgoingEdges)
-                           constraintCells.add(DefaultGraphModel.getTargetVertex(model, out));
-                        for (Object in : incomingEdges)
-                           constraintCells.add(DefaultGraphModel.getSourceVertex(model, in));
-
-                        // remove all the edges incident on those constraint cells
-                        graph.getModel().remove(DefaultGraphModel.getEdges(model, constraintCells.toArray()).toArray());
-                        // remove the constraint cells themselves
-                        graph.getModel().remove(constraintCells.toArray());
-                        // remove the variable cell
-                        graph.getModel().remove(new Object[] { cell });
-                     }
-                  });
-               }
-               else if (cellUserObject instanceof Constraint)
-               {
-                  menu.add(new AbstractAction("Remove Constraint") {
-                     public void actionPerformed(ActionEvent e) {
-                        // remove from the underlying constraint solver
-                        solver.removeConstraint((Constraint)cellUserObject);
-
-                        // remove the constraint cell and its incident edges from the graph
-                        graph.getModel().remove(DefaultGraphModel.getEdges(model, new Object[] { cell }).toArray());
-                        graph.getModel().remove(new Object[] { cell });
-                     }
-                  });
-               }
-
-               // TODO: might be convenient to add a constraint from a variable
-               // node to to a new literal in one operation, instead of adding
-               // the literal node first then the constraint to it
-
-               // TODO: some sort of suggestion of constraints based on CN/WN
-               // browsing would be nice
-
-               // TODO: should have better editability, e.g. right-click on a CN
-               // constraint node to edit its WN inheritance checkboxes
-            }
-
-            menu.addSeparator();
-
-            menu.add(new AbstractAction("Set default possible values") {
-               public void actionPerformed(ActionEvent e) {
-                  /* TODO: if a type already has default values set, let user
-                   * edit the list instead of having to enter a new one */
-
-                  final JComboBox typeSelect = new JComboBox(varTypes);
-                  final JTextField valuesInput = new JTextField("");
-                  final Object components[] = {
-                     new JLabel("Variable type:"),
-                     typeSelect,
-                     new JLabel("Default possible values (comma-separated list):"),
-                     valuesInput
-                  };
-
-                  int okOrCancel =
-                     JOptionPane.showOptionDialog(frame, components,
-                        "Set default possible values", JOptionPane.OK_CANCEL_OPTION,
-                        JOptionPane.QUESTION_MESSAGE, null, null, null);
-                  if (okOrCancel == JOptionPane.CANCEL_OPTION)
-                     return;
-
-                  final String type = (String) typeSelect.getSelectedItem();
-                  final String values = valuesInput.getText();
-                  // TODO: check that input is valid, e.g. no spaces in variable names
-                  
-                  solver.setDefaultValues(type, Arrays.asList(values.split(", ?")));
-               }
-            });
-
-            menu.addSeparator();
-
-            if (!graph.isSelectionEmpty())
-            {
-               final Object[] selectionObj = graph.getSelectionCells();
-               final DefaultGraphCell[] selection = new DefaultGraphCell[selectionObj.length];
-               for (int i = 0; i < selectionObj.length; ++i)
-                  selection[i] = (DefaultGraphCell) selectionObj[i];
-
-               if (selection.length == 2) 
-               {
-                  final DefaultGraphCell cell1 = selection[0];
-                  final DefaultGraphCell cell2 = selection[1];
-                  final Object cell1userObject = cell1.getUserObject();
-                  final Object cell2userObject = cell2.getUserObject();
-
-                  // if two Variables, or one Variable and one string literal,
-                  // are selected, offer to let the user add WN or CN constraints
-                  if ((cell1userObject instanceof Variable && cell2userObject instanceof Variable)
-                        || (cell1userObject instanceof String && cell2userObject instanceof Variable)
-                        || (cell1userObject instanceof Variable && cell2userObject instanceof String))
-                  {
-                     menu.add(new AbstractAction("Add ConceptNet constraint to selected nodes") {
-                        public void actionPerformed(ActionEvent e) {
-                           addCnConstraint(cell1, cell2);
-                        }
-                     });
-
-                     menu.add(new AbstractAction("Add WordNet constraint to selected nodes") {
-                        public void actionPerformed(ActionEvent e) {
-                           addWnConstraint(cell1, cell2);
-                        }
-                     });
-                  }
-               }
-
-               // if all the selected nodes are Constraint nodes, let the user
-               // add a boolean constraint on top of them
-               boolean onlyConstraintsSelected = true;
-               final List<Constraint> selectedConstraints = new ArrayList<Constraint>();
-               for (DefaultGraphCell c : selection)
-               {
-                  Object cellUserObject = c.getUserObject();
-                  if (!(cellUserObject instanceof Constraint))
-                  {
-                     onlyConstraintsSelected = false;
-                     break;
-                  }
-                  selectedConstraints.add((Constraint) cellUserObject);
-               }
-
-               if (onlyConstraintsSelected)
-               {
-                  if (selection.length > 1)
-                  {
-                     menu.add(new AbstractAction("AND the selected constraints") {
-                        public void actionPerformed(ActionEvent e) {
-                           AndConstraint c = new AndConstraint(selectedConstraints);
-                           solver.addConstraint(c);
-                           addConstraintCell(c, new DefaultGraphCell[0], selection);
-                        }
-                     });
-                     menu.add(new AbstractAction("OR the selected constraints") {
-                        public void actionPerformed(ActionEvent e) {
-                           OrConstraint c = new OrConstraint(selectedConstraints);
-                           solver.addConstraint(c);
-                           addConstraintCell(c, new DefaultGraphCell[0], selection);
-                        }
-                     });
-                  }
-                  else // selection.length == 1
-                  {
-                     menu.add(new AbstractAction("NOT the selected constraint") {
-                        public void actionPerformed(ActionEvent e) {
-                           NotConstraint c = new NotConstraint(selectedConstraints.get(0));
-                           solver.addConstraint(c);
-                           addConstraintCell(c, new DefaultGraphCell[0], selection, new Point((int)point.getX(), (int)point.getY() - 75));
-                        }
-                     });
-                  }
-               }
-
-            }
-
-            // TODO: edit a node without removing/readding
-
-            menu.addSeparator();
-
-            menu.add(new AbstractAction("Show possible assignments") {
-               public void actionPerformed(ActionEvent e) {
-
-                  // TODO: don't hardcode '10'
-                  final List<Map<Variable, String>> assignments = solver.generate(10);
-
-                  final List<Variable> vars = solver.getVariables();
-                  final int numVars = vars.size();
-                  final int numAssignments = assignments.size();
-
-                  Object[][] data = new Object[numAssignments][numVars];
-                  for (int g = 0; g < numAssignments; ++g)
-                  {
-                     final Map<Variable, String> assignment = assignments.get(g);
-                     for (int v = 0; v < numVars; ++v)
-                        data[g][v] = assignment.get(vars.get(v));
-                  }
-                  String[] varNames = new String[numVars];
-                  for (int v = 0; v < numVars; ++v)
-                     varNames[v] = vars.get(v).name;
-
-                  final TableModel tableModel = new DefaultTableModel(data, varNames);
-                  final JTable table = new JTable(tableModel);
-                  final JScrollPane scrollPane = new JScrollPane(table);
-                  final JButton whyButton = new JButton("Why?");
-                  final JPanel panel = new JPanel();
-                  // TODO: better sizing
-                  panel.setPreferredSize(new Dimension(425, 185));
-                  scrollPane.setPreferredSize(new Dimension(300, 185));
-                  table.setPreferredSize(new Dimension(250, 185));
-                  panel.add(scrollPane);
-                  panel.add(whyButton);
-
-                  whyButton.addActionListener(new AbstractAction("Why?") {
-                     public void actionPerformed(ActionEvent e) {
-                        final int col = table.getSelectedColumn();
-                        final int row = table.getSelectedRow();
-                        if (col != -1 && row != -1)
-                        {
-                           final Variable var = vars.get(col);
-                           final Map<Variable, String> assignment = assignments.get(row);
-                           String howSatisfied[] = solver.howSatisfied(var, assignment);
-
-                           JOptionPane.showMessageDialog(panel, howSatisfied, "Why?",
-                              JOptionPane.PLAIN_MESSAGE);
-                        }
-                     }
-                  });
-                  
-
-                  JOptionPane.showMessageDialog(frame, panel, "Variable assignments",
-                        JOptionPane.PLAIN_MESSAGE);
-               }
-            });
-
-            menu.add(new AbstractAction("Try a specific assignment") {
-               public void actionPerformed(ActionEvent e) {
-                  final List<Variable> vars = solver.getVariables();
-                  final int numVars = vars.size();
-                  String[] varNames = new String[numVars];
-                  for (int v = 0; v < numVars; ++v)
-                     varNames[v] = vars.get(v).name;
-
-                  final Object components[] = new Object[numVars*2];
-                  for (int v = 0; v < numVars; ++v)
-                  {
-                     components[2*v] = (Object) new JLabel(varNames[v]);
-                     components[2*v+1] = (Object) new JTextField("");
-                  }
-
-                  int okOrCancel =
-                     JOptionPane.showOptionDialog(frame, components,
-                        "New noun", JOptionPane.OK_CANCEL_OPTION,
-                        JOptionPane.QUESTION_MESSAGE, null, null, null);
-                  if (okOrCancel == JOptionPane.CANCEL_OPTION)
-                     return;
-
-                  Map<Variable, String> assignment = new HashMap<Variable, String>();
-                  for (int v = 0; v < numVars; ++v)
-                     assignment.put(vars.get(v), ((JTextField)components[2*v+1]).getText());
-
-                  final String whyNot = solver.howFailed(assignment);
-                  JOptionPane.showMessageDialog(frame, whyNot, "Check",
-                        JOptionPane.PLAIN_MESSAGE);
-               }
-            });
-
-            menu.show(graph, e.getX(), e.getY());
+            showEditMenu(e.getPoint());
          }
          else
          {
             super.mousePressed(e);
          }
       }
+   }
+
+   /* pop up the load/save context menu */
+   private static void showFileMenu(Point point)
+   {
+      final JPopupMenu menu = new JPopupMenu();
+
+      menu.add(new AbstractAction("Load Constraint Space") {
+         public void actionPerformed(ActionEvent e) {
+            final int returnVal = fc.showOpenDialog(frame);
+            if (returnVal == JFileChooser.APPROVE_OPTION)
+            {
+               File file = fc.getSelectedFile();
+               loadGraph(file);
+            }
+         }
+      });
+
+      menu.add(new AbstractAction("Save Constraint Space") {
+         public void actionPerformed(ActionEvent e) {
+            final int returnVal = fc.showSaveDialog(frame);
+            if (returnVal == JFileChooser.APPROVE_OPTION)
+            {
+               File file = fc.getSelectedFile();
+               saveGraph(file);
+            }
+         }
+      });
+      menu.show(graph, point.x, point.y);
+   }
+
+   /* pop up the graph-editing context menu */
+   private static void showEditMenu(Point point)
+   {
+      final DefaultGraphCell cell = (DefaultGraphCell) graph.getFirstCellForLocation(point.getX(), point.getY());
+      final JPopupMenu menu = new JPopupMenu();
+
+      menu.add(new AbstractAction("New variable") {
+         public void actionPerformed(ActionEvent e) {
+            final JComboBox typeSelect = new JComboBox(varTypes);
+            final JTextField nameInput = new JTextField("");
+            final JCheckBox useDefaults = new JCheckBox("Use default possible values");
+            final JTextField valuesInput = new JTextField("");
+            final Object components[] = {
+               new JLabel("Variable type:"),
+               typeSelect,
+               new JLabel("Variable name:"),
+               nameInput,
+               useDefaults,
+               new JLabel("Possible values (comma-separated, if not using defaults):"),
+               valuesInput
+            };
+
+            int okOrCancel =
+               JOptionPane.showOptionDialog(frame, components,
+                                            "New verb", JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE, null, null, null);
+            if (okOrCancel == JOptionPane.CANCEL_OPTION)
+               return;
+
+            final String type = (String) typeSelect.getSelectedItem();
+            final String name = nameInput.getText();
+
+            Variable var = null;
+            if (useDefaults.isSelected())
+            {
+               var = new Variable(name, type);
+            }
+            else
+            {
+               final String values = valuesInput.getText();
+               // TODO: check that input is valid, e.g. no spaces in variable names
+
+               var = new Variable(name, type, Arrays.asList(values.split(", ?")));
+            }
+
+            solver.addVariable(var);
+            addVarCell(var, point);
+         }
+      });
+
+      menu.add(new AbstractAction("New string literal") {
+         public void actionPerformed(ActionEvent e) {
+            final JTextField nameInput = new JTextField("");
+            final Object components[] = {
+               new JLabel("String literal:"),
+               nameInput
+            };
+
+            int okOrCancel =
+               JOptionPane.showOptionDialog(frame, components,
+                                            "New string literal", JOptionPane.OK_CANCEL_OPTION,
+                                            JOptionPane.QUESTION_MESSAGE, null, null, null);
+            if (okOrCancel == JOptionPane.CANCEL_OPTION)
+               return;
+
+            final String name = nameInput.getText();
+
+            addLiteralCell(name, point);
+         }
+      });
+
+      if (cell != null)
+      {
+         // TODO: remove when we're sure we don't need, was a hack to set the border on some cells for screenshots
+//         menu.add(new AbstractAction("Set border") {
+//            public void actionPerformed(ActionEvent e) {
+//               AttributeMap att = new AttributeMap();
+//               GraphConstants.setBorder(att, BorderFactory.createLineBorder(Color.black, 2));
+//               graph.getGraphLayoutCache().editCell(cell, att);
+//            }
+//         });
+
+         final Object cellUserObject = cell.getUserObject();
+         if (cellUserObject instanceof Variable)
+         {
+            menu.add(new AbstractAction("Remove Variable") {
+               public void actionPerformed(ActionEvent e) {
+                  // remove from the underlying constraint solver, which
+                  // auto-removes all relevant constraints too
+                  solver.removeVariable((Variable)cellUserObject);
+
+                  // remove the cell and relevant constraints from the
+                  // graph, including the constraint-labeling cells and
+                  // their edges
+                        
+                  // get a list of the constraint cells to remove
+                  final Object[] outgoingEdges = DefaultGraphModel.getOutgoingEdges(model, cell);
+                  final Object[] incomingEdges = DefaultGraphModel.getIncomingEdges(model, cell);
+                  List constraintCells = new ArrayList();
+                  for (Object out : outgoingEdges)
+                     constraintCells.add(DefaultGraphModel.getTargetVertex(model, out));
+                  for (Object in : incomingEdges)
+                     constraintCells.add(DefaultGraphModel.getSourceVertex(model, in));
+
+                  // remove all the edges incident on those constraint cells
+                  graph.getModel().remove(DefaultGraphModel.getEdges(model, constraintCells.toArray()).toArray());
+                  // remove the constraint cells themselves
+                  graph.getModel().remove(constraintCells.toArray());
+                  // remove the variable cell
+                  graph.getModel().remove(new Object[] { cell });
+               }
+            });
+         }
+         else if (cellUserObject instanceof Constraint)
+         {
+            menu.add(new AbstractAction("Remove Constraint") {
+               public void actionPerformed(ActionEvent e) {
+                  // remove from the underlying constraint solver
+                  solver.removeConstraint((Constraint)cellUserObject);
+
+                  // remove the constraint cell and its incident edges from the graph
+                  graph.getModel().remove(DefaultGraphModel.getEdges(model, new Object[] { cell }).toArray());
+                  graph.getModel().remove(new Object[] { cell });
+               }
+            });
+         }
+
+         // TODO: might be convenient to add a constraint from a variable
+         // node to to a new literal in one operation, instead of adding
+         // the literal node first then the constraint to it
+
+         // TODO: some sort of suggestion of constraints based on CN/WN
+         // browsing would be nice
+
+         // TODO: should have better editability, e.g. right-click on a CN
+         // constraint node to edit its WN inheritance checkboxes
+      }
+
+      menu.addSeparator();
+
+      menu.add(new AbstractAction("Set default possible values") {
+         public void actionPerformed(ActionEvent e) {
+            /* TODO: if a type already has default values set, let user
+             * edit the list instead of having to enter a new one */
+
+            final JComboBox typeSelect = new JComboBox(varTypes);
+            final JTextField valuesInput = new JTextField("");
+            final Object components[] = {
+               new JLabel("Variable type:"),
+               typeSelect,
+               new JLabel("Default possible values (comma-separated list):"),
+               valuesInput
+            };
+
+            int okOrCancel =
+               JOptionPane.showOptionDialog(frame, components,
+                                            "Set default possible values", JOptionPane.OK_CANCEL_OPTION,
+                                            JOptionPane.QUESTION_MESSAGE, null, null, null);
+            if (okOrCancel == JOptionPane.CANCEL_OPTION)
+               return;
+
+            final String type = (String) typeSelect.getSelectedItem();
+            final String values = valuesInput.getText();
+            // TODO: check that input is valid, e.g. no spaces in variable names
+                  
+            solver.setDefaultValues(type, Arrays.asList(values.split(", ?")));
+         }
+      });
+
+      menu.addSeparator();
+
+      if (!graph.isSelectionEmpty())
+      {
+         final Object[] selectionObj = graph.getSelectionCells();
+         final DefaultGraphCell[] selection = new DefaultGraphCell[selectionObj.length];
+         for (int i = 0; i < selectionObj.length; ++i)
+            selection[i] = (DefaultGraphCell) selectionObj[i];
+
+         if (selection.length == 2) 
+         {
+            final DefaultGraphCell cell1 = selection[0];
+            final DefaultGraphCell cell2 = selection[1];
+            final Object cell1userObject = cell1.getUserObject();
+            final Object cell2userObject = cell2.getUserObject();
+
+            // if two Variables, or one Variable and one string literal,
+            // are selected, offer to let the user add WN or CN constraints
+            if ((cell1userObject instanceof Variable && cell2userObject instanceof Variable)
+                || (cell1userObject instanceof String && cell2userObject instanceof Variable)
+                || (cell1userObject instanceof Variable && cell2userObject instanceof String))
+            {
+               menu.add(new AbstractAction("Add ConceptNet constraint to selected nodes") {
+                  public void actionPerformed(ActionEvent e) {
+                     addCnConstraint(cell1, cell2);
+                  }
+               });
+
+               menu.add(new AbstractAction("Add WordNet constraint to selected nodes") {
+                  public void actionPerformed(ActionEvent e) {
+                     addWnConstraint(cell1, cell2);
+                  }
+               });
+            }
+         }
+
+         // if all the selected nodes are Constraint nodes, let the user
+         // add a boolean constraint on top of them
+         boolean onlyConstraintsSelected = true;
+         final List<Constraint> selectedConstraints = new ArrayList<Constraint>();
+         for (DefaultGraphCell c : selection)
+         {
+            Object cellUserObject = c.getUserObject();
+            if (!(cellUserObject instanceof Constraint))
+            {
+               onlyConstraintsSelected = false;
+               break;
+            }
+            selectedConstraints.add((Constraint) cellUserObject);
+         }
+
+         if (onlyConstraintsSelected)
+         {
+            if (selection.length > 1)
+            {
+               menu.add(new AbstractAction("AND the selected constraints") {
+                  public void actionPerformed(ActionEvent e) {
+                     AndConstraint c = new AndConstraint(selectedConstraints);
+                     solver.addConstraint(c);
+                     addConstraintCell(c, new DefaultGraphCell[0], selection);
+                  }
+               });
+               menu.add(new AbstractAction("OR the selected constraints") {
+                  public void actionPerformed(ActionEvent e) {
+                     OrConstraint c = new OrConstraint(selectedConstraints);
+                     solver.addConstraint(c);
+                     addConstraintCell(c, new DefaultGraphCell[0], selection);
+                  }
+               });
+            }
+            else // selection.length == 1
+            {
+               menu.add(new AbstractAction("NOT the selected constraint") {
+                  public void actionPerformed(ActionEvent e) {
+                     NotConstraint c = new NotConstraint(selectedConstraints.get(0));
+                     solver.addConstraint(c);
+                     addConstraintCell(c, new DefaultGraphCell[0], selection, new Point((int)point.getX(), (int)point.getY() - 75));
+                  }
+               });
+            }
+         }
+
+      }
+
+      // TODO: edit a node without removing/readding
+
+      menu.addSeparator();
+
+      menu.add(new AbstractAction("Show possible assignments") {
+         public void actionPerformed(ActionEvent e) {
+
+            // TODO: don't hardcode '10'
+            final List<Map<Variable, String>> assignments = solver.generate(10);
+
+            final List<Variable> vars = solver.getVariables();
+            final int numVars = vars.size();
+            final int numAssignments = assignments.size();
+
+            Object[][] data = new Object[numAssignments][numVars];
+            for (int g = 0; g < numAssignments; ++g)
+            {
+               final Map<Variable, String> assignment = assignments.get(g);
+               for (int v = 0; v < numVars; ++v)
+                  data[g][v] = assignment.get(vars.get(v));
+            }
+            String[] varNames = new String[numVars];
+            for (int v = 0; v < numVars; ++v)
+               varNames[v] = vars.get(v).name;
+
+            final TableModel tableModel = new DefaultTableModel(data, varNames);
+            final JTable table = new JTable(tableModel);
+            final JScrollPane scrollPane = new JScrollPane(table);
+            final JButton whyButton = new JButton("Why?");
+            final JPanel panel = new JPanel();
+            // TODO: better sizing
+            panel.setPreferredSize(new Dimension(425, 185));
+            scrollPane.setPreferredSize(new Dimension(300, 185));
+            table.setPreferredSize(new Dimension(250, 185));
+            panel.add(scrollPane);
+            panel.add(whyButton);
+
+            whyButton.addActionListener(new AbstractAction("Why?") {
+               public void actionPerformed(ActionEvent e) {
+                  final int col = table.getSelectedColumn();
+                  final int row = table.getSelectedRow();
+                  if (col != -1 && row != -1)
+                  {
+                     final Variable var = vars.get(col);
+                     final Map<Variable, String> assignment = assignments.get(row);
+                     String howSatisfied[] = solver.howSatisfied(var, assignment);
+
+                     JOptionPane.showMessageDialog(panel, howSatisfied, "Why?",
+                                                   JOptionPane.PLAIN_MESSAGE);
+                  }
+               }
+            });
+
+            JOptionPane.showMessageDialog(frame, panel, "Variable assignments",
+                                          JOptionPane.PLAIN_MESSAGE);
+         }
+      });
+
+      menu.add(new AbstractAction("Try a specific assignment") {
+         public void actionPerformed(ActionEvent e) {
+            final List<Variable> vars = solver.getVariables();
+            final int numVars = vars.size();
+            String[] varNames = new String[numVars];
+            for (int v = 0; v < numVars; ++v)
+               varNames[v] = vars.get(v).name;
+
+            final Object components[] = new Object[numVars*2];
+            for (int v = 0; v < numVars; ++v)
+            {
+               components[2*v] = (Object) new JLabel(varNames[v]);
+               components[2*v+1] = (Object) new JTextField("");
+            }
+
+            int okOrCancel =
+               JOptionPane.showOptionDialog(frame, components,
+                                            "New noun", JOptionPane.OK_CANCEL_OPTION,
+                                            JOptionPane.QUESTION_MESSAGE, null, null, null);
+            if (okOrCancel == JOptionPane.CANCEL_OPTION)
+               return;
+
+            Map<Variable, String> assignment = new HashMap<Variable, String>();
+            for (int v = 0; v < numVars; ++v)
+               assignment.put(vars.get(v), ((JTextField)components[2*v+1]).getText());
+
+            final String whyNot = solver.howFailed(assignment);
+            JOptionPane.showMessageDialog(frame, whyNot, "Check",
+                                          JOptionPane.PLAIN_MESSAGE);
+         }
+      });
+
+      menu.show(graph, point.x, point.y);
    }
 
    /* load a saved constraint graph */
