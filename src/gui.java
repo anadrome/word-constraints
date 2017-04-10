@@ -481,515 +481,514 @@ public class gui
             super.mousePressed(e);
          }
       }
+   }
 
-      /* load a saved constraint graph */
-      private static void loadGraph(File file)
+   /* load a saved constraint graph */
+   private static void loadGraph(File file)
+   {
+      try
       {
-         try
+         // load the constraints into the backend
+         solver = new ConstraintSolver(file.getPath());
+
+         // load the graph layout that displays the constraints
+         final BufferedReader graphFile = new BufferedReader(new FileReader(file.getPath() + ".graph"));
+         for (String s = graphFile.readLine(); s != null; s = graphFile.readLine())
          {
-            // load the constraints into the backend
-            solver = new ConstraintSolver(file.getPath());
-
-            // load the graph layout that displays the constraints
-            final BufferedReader graphFile = new BufferedReader(new FileReader(file.getPath() + ".graph"));
-            for (String s = graphFile.readLine(); s != null; s = graphFile.readLine())
+            if (s.startsWith("var "))
             {
-               if (s.startsWith("var "))
-               {
-                  int pos = 4;
+               int pos = 4;
 
-                  int nextPos = s.indexOf(':', pos);
-                  final String name = s.substring(pos, nextPos);
-                  pos = nextPos+2;
-                  nextPos = s.indexOf(' ', pos);
-                  final int xPos = Integer.valueOf(s.substring(pos, nextPos));
-                  pos = nextPos+1;
-                  final int yPos = Integer.valueOf(s.substring(pos));
-                  Point p = new Point(xPos, yPos);
-                  addVarCell(solver.getVariable(name), p);
+               int nextPos = s.indexOf(':', pos);
+               final String name = s.substring(pos, nextPos);
+               pos = nextPos+2;
+               nextPos = s.indexOf(' ', pos);
+               final int xPos = Integer.valueOf(s.substring(pos, nextPos));
+               pos = nextPos+1;
+               final int yPos = Integer.valueOf(s.substring(pos));
+               Point p = new Point(xPos, yPos);
+               addVarCell(solver.getVariable(name), p);
+            }
+            else if (s.startsWith("constraint "))
+            {
+               // this *just* adds the cell, not the edges; see "connection: " below
+               // for those
+               int pos = 11;
+               int nextPos = s.indexOf(':', pos);
+               final int constraintId = Integer.valueOf(s.substring(pos, nextPos));
+               pos = nextPos + 2;
+               nextPos = s.indexOf(' ', pos);
+               final int xPos = Integer.valueOf(s.substring(pos, nextPos));
+               pos = nextPos+1;
+               final int yPos = Integer.valueOf(s.substring(pos));
+
+               final Constraint constraint = solver.getConstraint(constraintId);
+               assert constraint != null;
+
+               addConstraintCell(constraint, new DefaultGraphCell[0], new DefaultGraphCell[0], new Point(xPos, yPos));
+            }
+            else if (s.startsWith("literal "))
+            {
+               int pos = 8;
+               int nextPos = s.indexOf('"', pos+1);
+               final String literal = s.substring(pos, nextPos+1);
+               pos = nextPos + 3;
+               nextPos = s.indexOf(' ', pos);
+               final int xPos = Integer.valueOf(s.substring(pos, nextPos));
+               pos = nextPos+1;
+               final int yPos = Integer.valueOf(s.substring(pos));
+
+               addLiteralCell(literal, new Point(xPos, yPos));
+            }
+            else if (s.startsWith("connection: "))
+            {
+               int pos = 12;
+               final char fromType = s.charAt(pos);
+               pos += 2;
+               int nextPos = s.indexOf(' ', pos);
+               final String fromNameOrId = s.substring(pos, nextPos); // name, id, or literal
+               pos = nextPos + 1;
+               final char toType = s.charAt(pos);
+               pos += 2;
+               final String toNameOrId = s.substring(pos);
+
+               final Object fromObject = (Object)(fromType == 'v'
+                                                  ? solver.getVariable(fromNameOrId)
+                                                  : (fromType == 'c'
+                                                     ? solver.getConstraint(Integer.valueOf(fromNameOrId))
+                                                     : fromNameOrId));
+               final Object toObject = (Object)(toType == 'v'
+                                                ? solver.getVariable(toNameOrId)
+                                                : (toType == 'c'
+                                                   ? solver.getConstraint(Integer.valueOf(toNameOrId))
+                                                   : toNameOrId));
+
+               final DefaultGraphCell fromCell = userObjectToCell.get(fromObject);
+               final DefaultGraphCell toCell = userObjectToCell.get(toObject);
+               assert fromCell != null;
+               assert toCell != null;
+
+               fromCell.add(new DefaultPort());
+               toCell.add(new DefaultPort());
+               final DefaultEdge edge = new DefaultEdge();
+               edge.setSource(fromCell.getChildAt(0));
+               edge.setTarget(toCell.getChildAt(0));
+               GraphConstants.setLineEnd(edge.getAttributes(), GraphConstants.ARROW_CLASSIC);
+               GraphConstants.setEndFill(edge.getAttributes(), true);
+               graph.getGraphLayoutCache().insert(new Object[] { edge });
+            }
+            else if (s.length() > 0)
+            {
+               throw new IOException("Unrecognized line in save file: \"" + s + "\"");
+            }
+         }
+
+         // TODO: if there's no .graph file (e.g. user wrote directly in the
+         // text format), do some sort of default layout based on the
+         // constraint file
+      }
+      catch (Exception exception)
+      {
+         throw new RuntimeException(exception);
+      }
+   }
+
+   private static void saveGraph(File file)
+   {
+      try
+      {
+         // save the backend constraint set
+         solver.save(file.getPath());
+
+         // save the visual graph layout
+         final BufferedWriter graphFile = new BufferedWriter(new FileWriter(file.getPath() + ".graph"));
+         final List roots = model.getRoots();
+
+         // first output all the nodes
+         // Note: we assume all nodes (both var. and constraint nodes) are
+         // roots, which would stop being true if we end up using JGraph's
+         // grouping functionality
+         for (Object r : roots)
+         {
+            if (DefaultGraphModel.isVertex(model, r))
+            {
+               final DefaultGraphCell graphCell = (DefaultGraphCell) r;
+               final Rectangle2D coord = GraphConstants.getBounds(graphCell.getAttributes());
+               final Object userObject = graphCell.getUserObject();
+               if (userObject instanceof Variable)
+               {
+                  final Variable var = (Variable) userObject;
+                  graphFile.write("var " + var.name + ": " + (int)coord.getX() + " " + (int)coord.getY() + "\n");
                }
-               else if (s.startsWith("constraint "))
+               else if (userObject instanceof Constraint)
                {
-                  // this *just* adds the cell, not the edges; see "connection: " below
-                  // for those
-                  int pos = 11;
-                  int nextPos = s.indexOf(':', pos);
-                  final int constraintId = Integer.valueOf(s.substring(pos, nextPos));
-                  pos = nextPos + 2;
-                  nextPos = s.indexOf(' ', pos);
-                  final int xPos = Integer.valueOf(s.substring(pos, nextPos));
-                  pos = nextPos+1;
-                  final int yPos = Integer.valueOf(s.substring(pos));
-
-                  final Constraint constraint = solver.getConstraint(constraintId);
-                  assert constraint != null;
-
-                  addConstraintCell(constraint, new DefaultGraphCell[0], new DefaultGraphCell[0], new Point(xPos, yPos));
+                  final Constraint constraint = (Constraint) userObject;
+                  graphFile.write("constraint " + constraint.getID() + ": " + (int)coord.getX() + " " + (int)coord.getY() + "\n");
                }
-               else if (s.startsWith("literal "))
+               else if (userObject instanceof String)
                {
-                  int pos = 8;
-                  int nextPos = s.indexOf('"', pos+1);
-                  final String literal = s.substring(pos, nextPos+1);
-                  pos = nextPos + 3;
-                  nextPos = s.indexOf(' ', pos);
-                  final int xPos = Integer.valueOf(s.substring(pos, nextPos));
-                  pos = nextPos+1;
-                  final int yPos = Integer.valueOf(s.substring(pos));
-
-                  addLiteralCell(literal, new Point(xPos, yPos));
-               }
-               else if (s.startsWith("connection: "))
-               {
-                  int pos = 12;
-                  final char fromType = s.charAt(pos);
-                  pos += 2;
-                  int nextPos = s.indexOf(' ', pos);
-                  final String fromNameOrId = s.substring(pos, nextPos); // name, id, or literal
-                  pos = nextPos + 1;
-                  final char toType = s.charAt(pos);
-                  pos += 2;
-                  final String toNameOrId = s.substring(pos);
-
-                  final Object fromObject = (Object)(fromType == 'v'
-                        ? solver.getVariable(fromNameOrId)
-                        : (fromType == 'c'
-                           ? solver.getConstraint(Integer.valueOf(fromNameOrId))
-                           : fromNameOrId));
-                  final Object toObject = (Object)(toType == 'v'
-                        ? solver.getVariable(toNameOrId)
-                        : (toType == 'c'
-                           ? solver.getConstraint(Integer.valueOf(toNameOrId))
-                           : toNameOrId));
-
-                  final DefaultGraphCell fromCell = userObjectToCell.get(fromObject);
-                  final DefaultGraphCell toCell = userObjectToCell.get(toObject);
-                  assert fromCell != null;
-                  assert toCell != null;
-
-                  fromCell.add(new DefaultPort());
-                  toCell.add(new DefaultPort());
-                  final DefaultEdge edge = new DefaultEdge();
-                  edge.setSource(fromCell.getChildAt(0));
-                  edge.setTarget(toCell.getChildAt(0));
-                  GraphConstants.setLineEnd(edge.getAttributes(), GraphConstants.ARROW_CLASSIC);
-                  GraphConstants.setEndFill(edge.getAttributes(), true);
-                  graph.getGraphLayoutCache().insert(new Object[] { edge });
-               }
-               else if (s.length() > 0)
-               {
-                  throw new IOException("Unrecognized line in save file: \"" + s + "\"");
+                  final String literal = (String) userObject;
+                  graphFile.write("literal " + literal + ": " + (int)coord.getX() + " " + (int)coord.getY() + "\n");
                }
             }
-
-            // TODO: if there's no .graph file (e.g. user wrote directly in the
-            // text format), do some sort of default layout based on the
-            // constraint file
          }
-         catch (Exception exception)
+         // now output connections (arrows) between nodes, in the format:
+         //   connection: v:name c:id
+         // where v:name or c:id are 'v' or 'c' or 'l' for a variable or constraint,
+         // or string literal, followed by a colon, followed by a name (if var) or ID
+         // (if constraint) or string literal, and creates a
+         // connection (arrow) from the first to the second item
+         for (Object r : roots)
          {
-            throw new RuntimeException(exception);
-         }
-      }
-
-      private static void saveGraph(File file)
-      {
-         try
-         {
-            // save the backend constraint set
-            solver.save(file.getPath());
-
-            // save the visual graph layout
-            final BufferedWriter graphFile = new BufferedWriter(new FileWriter(file.getPath() + ".graph"));
-            final List roots = model.getRoots();
-
-            // first output all the nodes
-            // Note: we assume all nodes (both var. and constraint nodes) are
-            // roots, which would stop being true if we end up using JGraph's
-            // grouping functionality
-            for (Object r : roots)
+            if (DefaultGraphModel.isVertex(model, r))
             {
-               if (DefaultGraphModel.isVertex(model, r))
+               final DefaultGraphCell graphCell = (DefaultGraphCell) r;
+               final Object userObject = graphCell.getUserObject();
+               // source of connections is responsible for the output (to avoid double-outputting)
+               final Object[] outgoingEdges = DefaultGraphModel.getOutgoingEdges(model, graphCell);
+               for (Object edge : outgoingEdges)
                {
-                  final DefaultGraphCell graphCell = (DefaultGraphCell) r;
-                  final Rectangle2D coord = GraphConstants.getBounds(graphCell.getAttributes());
-                  final Object userObject = graphCell.getUserObject();
+                  graphFile.write("connection: ");
                   if (userObject instanceof Variable)
-                  {
-                     final Variable var = (Variable) userObject;
-                     graphFile.write("var " + var.name + ": " + (int)coord.getX() + " " + (int)coord.getY() + "\n");
-                  }
+                     graphFile.write("v:" + ((Variable)userObject).name);
                   else if (userObject instanceof Constraint)
-                  {
-                     final Constraint constraint = (Constraint) userObject;
-                     graphFile.write("constraint " + constraint.getID() + ": " + (int)coord.getX() + " " + (int)coord.getY() + "\n");
-                  }
+                     graphFile.write("c:" + ((Constraint)userObject).getID());
                   else if (userObject instanceof String)
-                  {
-                     final String literal = (String) userObject;
-                     graphFile.write("literal " + literal + ": " + (int)coord.getX() + " " + (int)coord.getY() + "\n");
-                  }
+                     graphFile.write("l:" + ((String)userObject));
+
+                  final DefaultGraphCell target = (DefaultGraphCell) DefaultGraphModel.getTargetVertex(model, edge);
+                  final Object targetUserObject = target.getUserObject();
+                  if (targetUserObject instanceof Variable)
+                     graphFile.write(" v:" + ((Variable)targetUserObject).name);
+                  else if (targetUserObject instanceof Constraint)
+                     graphFile.write(" c:" + ((Constraint)targetUserObject).getID());
+                  else if (targetUserObject instanceof String)
+                     graphFile.write(" l:" + ((String)targetUserObject));
+                  graphFile.write("\n");
                }
             }
-            // now output connections (arrows) between nodes, in the format:
-            //   connection: v:name c:id
-            // where v:name or c:id are 'v' or 'c' or 'l' for a variable or constraint,
-            // or string literal, followed by a colon, followed by a name (if var) or ID
-            // (if constraint) or string literal, and creates a
-            // connection (arrow) from the first to the second item
-            for (Object r : roots)
-            {
-               if (DefaultGraphModel.isVertex(model, r))
-               {
-                  final DefaultGraphCell graphCell = (DefaultGraphCell) r;
-                  final Object userObject = graphCell.getUserObject();
-                  // source of connections is responsible for the output (to avoid double-outputting)
-                  final Object[] outgoingEdges = DefaultGraphModel.getOutgoingEdges(model, graphCell);
-                  for (Object edge : outgoingEdges)
-                  {
-                     graphFile.write("connection: ");
-                     if (userObject instanceof Variable)
-                        graphFile.write("v:" + ((Variable)userObject).name);
-                     else if (userObject instanceof Constraint)
-                        graphFile.write("c:" + ((Constraint)userObject).getID());
-                     else if (userObject instanceof String)
-                        graphFile.write("l:" + ((String)userObject));
-
-                     final DefaultGraphCell target = (DefaultGraphCell) DefaultGraphModel.getTargetVertex(model, edge);
-                     final Object targetUserObject = target.getUserObject();
-                     if (targetUserObject instanceof Variable)
-                        graphFile.write(" v:" + ((Variable)targetUserObject).name);
-                     else if (targetUserObject instanceof Constraint)
-                        graphFile.write(" c:" + ((Constraint)targetUserObject).getID());
-                     else if (targetUserObject instanceof String)
-                        graphFile.write(" l:" + ((String)targetUserObject));
-                     graphFile.write("\n");
-                  }
-               }
-            }
-            graphFile.close();
          }
-         catch (Exception exception)
-         {
-            throw new RuntimeException("Error saving to file: " + file.getPath());
-         }
+         graphFile.close();
       }
-
-      /* add a variable cell to the graph */
-      private static void addVarCell(Variable var, Point point)
+      catch (Exception exception)
       {
-         final DefaultGraphCell newCell = new DefaultGraphCell(var);
-         userObjectToCell.put(var, newCell);
-         GraphConstants.setBounds(newCell.getAttributes(),
-               new Rectangle2D.Double(point.getX(), point.getY(), 0, 0));
-         GraphConstants.setResize(newCell.getAttributes(), true);
-         GraphConstants.setBorder(newCell.getAttributes(), BorderFactory.createLineBorder(Color.black, 2));
-         graph.getGraphLayoutCache().insert(new DefaultGraphCell[] { newCell });
+         throw new RuntimeException("Error saving to file: " + file.getPath());
       }
+   }
 
-      /* add a string literal to the graph */
-      private static void addLiteralCell(String string, Point point)
+   /* add a variable cell to the graph */
+   private static void addVarCell(Variable var, Point point)
+   {
+      final DefaultGraphCell newCell = new DefaultGraphCell(var);
+      userObjectToCell.put(var, newCell);
+      GraphConstants.setBounds(newCell.getAttributes(),
+                               new Rectangle2D.Double(point.getX(), point.getY(), 0, 0));
+      GraphConstants.setResize(newCell.getAttributes(), true);
+      GraphConstants.setBorder(newCell.getAttributes(), BorderFactory.createLineBorder(Color.black, 2));
+      graph.getGraphLayoutCache().insert(new DefaultGraphCell[] { newCell });
+   }
+
+   /* add a string literal to the graph */
+   private static void addLiteralCell(String string, Point point)
+   {
+      final String quotedString = (string.charAt(0) == '"') ? string : "\"" + string + "\"";
+      final DefaultGraphCell newCell = new DefaultGraphCell(quotedString);
+      userObjectToCell.put(string, newCell);
+      GraphConstants.setBounds(newCell.getAttributes(),
+                               new Rectangle2D.Double(point.getX(), point.getY(), 0, 0));
+      GraphConstants.setResize(newCell.getAttributes(), true);
+      GraphConstants.setBorder(newCell.getAttributes(), BorderFactory.createLineBorder(Color.black, 2));
+      graph.getGraphLayoutCache().insert(new DefaultGraphCell[] { newCell });
+   }
+
+   /* add a constraint cell to the graph, with edges to/from the specified
+    * source and target cells, and a location chosen to be the mean x/y
+    * location of its connected cells */
+   private static void addConstraintCell(Constraint c, DefaultGraphCell[] sources, DefaultGraphCell[] targets)
+   {
+      final int numConnections = sources.length + targets.length;
+      double x = 0.0;
+      double y = 0.0;
+      for (DefaultGraphCell cell : sources)
       {
-         final String quotedString = (string.charAt(0) == '"') ? string : "\"" + string + "\"";
-         final DefaultGraphCell newCell = new DefaultGraphCell(quotedString);
-         userObjectToCell.put(string, newCell);
-         GraphConstants.setBounds(newCell.getAttributes(),
-               new Rectangle2D.Double(point.getX(), point.getY(), 0, 0));
-         GraphConstants.setResize(newCell.getAttributes(), true);
-         GraphConstants.setBorder(newCell.getAttributes(), BorderFactory.createLineBorder(Color.black, 2));
-         graph.getGraphLayoutCache().insert(new DefaultGraphCell[] { newCell });
+         final Rectangle2D rect = GraphConstants.getBounds(cell.getAttributes());
+         x += rect.getX();
+         y += rect.getY();
       }
-
-      /* add a constraint cell to the graph, with edges to/from the specified
-       * source and target cells, and a location chosen to be the mean x/y
-       * location of its connected cells */
-      private static void addConstraintCell(Constraint c, DefaultGraphCell[] sources, DefaultGraphCell[] targets)
+      for (DefaultGraphCell cell : targets)
       {
-         final int numConnections = sources.length + targets.length;
-         double x = 0.0;
-         double y = 0.0;
-         for (DefaultGraphCell cell : sources)
-         {
-            final Rectangle2D rect = GraphConstants.getBounds(cell.getAttributes());
-            x += rect.getX();
-            y += rect.getY();
-         }
-         for (DefaultGraphCell cell : targets)
-         {
-            final Rectangle2D rect = GraphConstants.getBounds(cell.getAttributes());
-            x += rect.getX();
-            y += rect.getY();
-         }
-         x /= numConnections;
-         y /= numConnections;
-
-         addConstraintCell(c, sources, targets, new Point((int)x, (int)y));
+         final Rectangle2D rect = GraphConstants.getBounds(cell.getAttributes());
+         x += rect.getX();
+         y += rect.getY();
       }
+      x /= numConnections;
+      y /= numConnections;
 
-      /* add a constraint cell to the graph, with edges to/from the specified
-       * source and target cells, and at a specific location
-       */
-      private static void addConstraintCell(Constraint c, DefaultGraphCell[] sources, DefaultGraphCell[] targets, Point p)
+      addConstraintCell(c, sources, targets, new Point((int)x, (int)y));
+   }
+
+   /* add a constraint cell to the graph, with edges to/from the specified
+    * source and target cells, and at a specific location
+    */
+   private static void addConstraintCell(Constraint c, DefaultGraphCell[] sources, DefaultGraphCell[] targets, Point p)
+   {
+      final DefaultGraphCell constraintCell = new DefaultGraphCell(c);
+      userObjectToCell.put(c, constraintCell);
+
+      GraphConstants.setBounds(constraintCell.getAttributes(), new Rectangle2D.Double(p.getX(), p.getY(), 0, 0));
+      GraphConstants.setResize(constraintCell.getAttributes(), true);
+
+      // add the edges
+      final int numConnections = sources.length + targets.length;
+      Object[] toInsert = new Object[numConnections+1];
+      int connectionCount = 0;
+      for (DefaultGraphCell source : sources)
       {
-         final DefaultGraphCell constraintCell = new DefaultGraphCell(c);
-         userObjectToCell.put(c, constraintCell);
-
-         GraphConstants.setBounds(constraintCell.getAttributes(), new Rectangle2D.Double(p.getX(), p.getY(), 0, 0));
-         GraphConstants.setResize(constraintCell.getAttributes(), true);
-
-         // add the edges
-         final int numConnections = sources.length + targets.length;
-         Object[] toInsert = new Object[numConnections+1];
-         int connectionCount = 0;
-         for (DefaultGraphCell source : sources)
-         {
-            source.add(new DefaultPort());
-            constraintCell.add(new DefaultPort());
-            final DefaultEdge edge = new DefaultEdge();
-            edge.setSource(source.getChildAt(0));
-            edge.setTarget(constraintCell.getChildAt(connectionCount));
-            GraphConstants.setLineEnd(edge.getAttributes(), GraphConstants.ARROW_CLASSIC);
-            GraphConstants.setEndFill(edge.getAttributes(), true);
-            toInsert[connectionCount] = edge;
-            ++connectionCount;
-         }
-         for (DefaultGraphCell target : targets)
-         {
-            constraintCell.add(new DefaultPort());
-            target.add(new DefaultPort());
-            final DefaultEdge edge = new DefaultEdge();
-            edge.setSource(constraintCell.getChildAt(connectionCount));
-            edge.setTarget(target.getChildAt(0));
-            GraphConstants.setLineEnd(edge.getAttributes(), GraphConstants.ARROW_CLASSIC);
-            GraphConstants.setEndFill(edge.getAttributes(), true);
-            toInsert[connectionCount] = edge;
-            ++connectionCount;
-         }
-         toInsert[numConnections] = constraintCell;
-
-         // insert the new cell and edges
-         graph.getGraphLayoutCache().insert(toInsert);
+         source.add(new DefaultPort());
+         constraintCell.add(new DefaultPort());
+         final DefaultEdge edge = new DefaultEdge();
+         edge.setSource(source.getChildAt(0));
+         edge.setTarget(constraintCell.getChildAt(connectionCount));
+         GraphConstants.setLineEnd(edge.getAttributes(), GraphConstants.ARROW_CLASSIC);
+         GraphConstants.setEndFill(edge.getAttributes(), true);
+         toInsert[connectionCount] = edge;
+         ++connectionCount;
       }
-
-      private static void addCnConstraint(DefaultGraphCell cell1, DefaultGraphCell cell2)
+      for (DefaultGraphCell target : targets)
       {
-         final JLabel sourceLabel = new JLabel(cell1.toString());
-         final JLabel targetLabel = new JLabel(cell2.toString());
+         constraintCell.add(new DefaultPort());
+         target.add(new DefaultPort());
+         final DefaultEdge edge = new DefaultEdge();
+         edge.setSource(constraintCell.getChildAt(connectionCount));
+         edge.setTarget(target.getChildAt(0));
+         GraphConstants.setLineEnd(edge.getAttributes(), GraphConstants.ARROW_CLASSIC);
+         GraphConstants.setEndFill(edge.getAttributes(), true);
+         toInsert[connectionCount] = edge;
+         ++connectionCount;
+      }
+      toInsert[numConnections] = constraintCell;
 
-         // TODO: offer types in a "smart" way based on node types (i.e. actions are verbs, properties are nouns)
-         final SepComboBox constraintTypeInput = new SepComboBox(cnConstraintTypes);
+      // insert the new cell and edges
+      graph.getGraphLayoutCache().insert(toInsert);
+   }
 
-         final JButton swapButton = new JButton("Swap source/target");
-         final boolean[] swapped = new boolean[1]; // stupid 1-element boolean so it's something final that we can access in a closure
-         swapped[0] = false;
-         final boolean[] inheritance = new boolean[] { false, false, false, false };
-         swapButton.addActionListener(new AbstractAction("Swap source/target") {
-            public void actionPerformed(ActionEvent e) {
-               final String temp = sourceLabel.getText();
-               sourceLabel.setText(targetLabel.getText());
-               targetLabel.setText(temp);
-               swapped[0] = !swapped[0];
+   private static void addCnConstraint(DefaultGraphCell cell1, DefaultGraphCell cell2)
+   {
+      final JLabel sourceLabel = new JLabel(cell1.toString());
+      final JLabel targetLabel = new JLabel(cell2.toString());
 
-               boolean tempB = inheritance[0]; 
-               inheritance[0] = inheritance[2];
-               inheritance[2] = tempB;
-               tempB = inheritance[1];
-               inheritance[1] = inheritance[3];
-               inheritance[3] = tempB;
-            }
-         });
+      // TODO: offer types in a "smart" way based on node types (i.e. actions are verbs, properties are nouns)
+      final SepComboBox constraintTypeInput = new SepComboBox(cnConstraintTypes);
 
-         final JButton inheritanceButton = new JButton("Set WordNet inheritance");
-         inheritanceButton.addActionListener(new AbstractAction("Set WordNet inheritance") {
-            public void actionPerformed(ActionEvent e) {
-               final JRadioButton[] buttons = new JRadioButton[6];
+      final JButton swapButton = new JButton("Swap source/target");
+      final boolean[] swapped = new boolean[1]; // stupid 1-element boolean so it's something final that we can access in a closure
+      swapped[0] = false;
+      final boolean[] inheritance = new boolean[] { false, false, false, false };
+      swapButton.addActionListener(new AbstractAction("Swap source/target") {
+         public void actionPerformed(ActionEvent e) {
+            final String temp = sourceLabel.getText();
+            sourceLabel.setText(targetLabel.getText());
+            targetLabel.setText(temp);
+            swapped[0] = !swapped[0];
 
-               final ButtonGroup sourceGroup = new ButtonGroup();
-               buttons[0] = new JRadioButton("Exact match");
-               buttons[0].setActionCommand("None");
-               sourceGroup.add(buttons[0]);
-               buttons[1] = new JRadioButton("Exact or more general match");
-               buttons[1].setActionCommand("Hypernym");
-               sourceGroup.add(buttons[1]);
-               buttons[2] = new JRadioButton("Exact or more specific match");
-               buttons[2].setActionCommand("Hyponym");
-               sourceGroup.add(buttons[2]);
-               buttons[0].setSelected(true);
-
-               final ButtonGroup targetGroup = new ButtonGroup();
-               buttons[3] = new JRadioButton("Exact match");
-               buttons[3].setActionCommand("None");
-               targetGroup.add(buttons[3]);
-               buttons[4] = new JRadioButton("Exact or more general match");
-               buttons[4].setActionCommand("Hypernym");
-               targetGroup.add(buttons[4]);
-               buttons[5] = new JRadioButton("Exact or more specific match");
-               buttons[5].setActionCommand("Hyponym");
-               targetGroup.add(buttons[5]);
-               buttons[3].setSelected(true);
-
-               Object inheritanceComponents[] = {
-                  new JLabel("WordNet inheritance for " + sourceLabel.getText() + ":"),
-                  buttons[0], buttons[1], buttons[2],
-                  new JLabel("WordNet inheritance for " + targetLabel.getText() + ":"),
-                  buttons[3], buttons[4], buttons[5]
-               };
-
-               int okOrCancel =
-                  JOptionPane.showOptionDialog(frame, inheritanceComponents,
-                        "Set WordNet inheritance", JOptionPane.OK_CANCEL_OPTION,
-                        JOptionPane.QUESTION_MESSAGE, null, null, null);
-               if (okOrCancel == JOptionPane.CANCEL_OPTION)
-                  return;
-
-               final String sourceSelection = sourceGroup.getSelection().getActionCommand();
-               inheritance[0] = sourceSelection.equals("Hypernym");
-               inheritance[1] = sourceSelection.equals("Hyponym");
-               final String targetSelection = targetGroup.getSelection().getActionCommand();
-               inheritance[2] = targetSelection.equals("Hypernym");
-               inheritance[3] = targetSelection.equals("Hyponym");
-            }
-         });
-
-
-         final Object components[] = {
-            sourceLabel,
-            constraintTypeInput,
-            targetLabel,
-            swapButton,
-            inheritanceButton
-         };
-
-         int okOrCancel =
-            JOptionPane.showOptionDialog(frame, components,
-                  "New ConceptNet constraint", JOptionPane.OK_CANCEL_OPTION,
-                  JOptionPane.QUESTION_MESSAGE, null, null, null);
-         if (okOrCancel == JOptionPane.CANCEL_OPTION)
-            return;
-
-         final DefaultGraphCell source = swapped[0] ? cell2 : cell1;
-         final DefaultGraphCell target = swapped[0] ? cell1 : cell2;
-
-         // add the underlying constraints
-         final String type = (String) constraintTypeInput.getSelectedItem();
-         final Object sourceUserObject = source.getUserObject();
-         final Object targetUserObject = target.getUserObject();
-
-         Constraint newConstraint;
-
-         if (sourceUserObject instanceof Variable
-               && targetUserObject instanceof Variable)
-         {
-            newConstraint = new ConceptNetConstraint(type,
-                  (Variable) sourceUserObject,
-                  (Variable) targetUserObject,
-                  inheritance);
+            boolean tempB = inheritance[0]; 
+            inheritance[0] = inheritance[2];
+            inheritance[2] = tempB;
+            tempB = inheritance[1];
+            inheritance[1] = inheritance[3];
+            inheritance[3] = tempB;
          }
-         else if (sourceUserObject instanceof Variable
+      });
+
+      final JButton inheritanceButton = new JButton("Set WordNet inheritance");
+      inheritanceButton.addActionListener(new AbstractAction("Set WordNet inheritance") {
+         public void actionPerformed(ActionEvent e) {
+            final JRadioButton[] buttons = new JRadioButton[6];
+
+            final ButtonGroup sourceGroup = new ButtonGroup();
+            buttons[0] = new JRadioButton("Exact match");
+            buttons[0].setActionCommand("None");
+            sourceGroup.add(buttons[0]);
+            buttons[1] = new JRadioButton("Exact or more general match");
+            buttons[1].setActionCommand("Hypernym");
+            sourceGroup.add(buttons[1]);
+            buttons[2] = new JRadioButton("Exact or more specific match");
+            buttons[2].setActionCommand("Hyponym");
+            sourceGroup.add(buttons[2]);
+            buttons[0].setSelected(true);
+
+            final ButtonGroup targetGroup = new ButtonGroup();
+            buttons[3] = new JRadioButton("Exact match");
+            buttons[3].setActionCommand("None");
+            targetGroup.add(buttons[3]);
+            buttons[4] = new JRadioButton("Exact or more general match");
+            buttons[4].setActionCommand("Hypernym");
+            targetGroup.add(buttons[4]);
+            buttons[5] = new JRadioButton("Exact or more specific match");
+            buttons[5].setActionCommand("Hyponym");
+            targetGroup.add(buttons[5]);
+            buttons[3].setSelected(true);
+
+            Object inheritanceComponents[] = {
+               new JLabel("WordNet inheritance for " + sourceLabel.getText() + ":"),
+               buttons[0], buttons[1], buttons[2],
+               new JLabel("WordNet inheritance for " + targetLabel.getText() + ":"),
+               buttons[3], buttons[4], buttons[5]
+            };
+
+            int okOrCancel =
+               JOptionPane.showOptionDialog(frame, inheritanceComponents,
+                                            "Set WordNet inheritance", JOptionPane.OK_CANCEL_OPTION,
+                                            JOptionPane.QUESTION_MESSAGE, null, null, null);
+            if (okOrCancel == JOptionPane.CANCEL_OPTION)
+               return;
+
+            final String sourceSelection = sourceGroup.getSelection().getActionCommand();
+            inheritance[0] = sourceSelection.equals("Hypernym");
+            inheritance[1] = sourceSelection.equals("Hyponym");
+            final String targetSelection = targetGroup.getSelection().getActionCommand();
+            inheritance[2] = targetSelection.equals("Hypernym");
+            inheritance[3] = targetSelection.equals("Hyponym");
+         }
+      });
+
+
+      final Object components[] = {
+         sourceLabel,
+         constraintTypeInput,
+         targetLabel,
+         swapButton,
+         inheritanceButton
+      };
+
+      int okOrCancel =
+         JOptionPane.showOptionDialog(frame, components,
+                                      "New ConceptNet constraint", JOptionPane.OK_CANCEL_OPTION,
+                                      JOptionPane.QUESTION_MESSAGE, null, null, null);
+      if (okOrCancel == JOptionPane.CANCEL_OPTION)
+         return;
+
+      final DefaultGraphCell source = swapped[0] ? cell2 : cell1;
+      final DefaultGraphCell target = swapped[0] ? cell1 : cell2;
+
+      // add the underlying constraints
+      final String type = (String) constraintTypeInput.getSelectedItem();
+      final Object sourceUserObject = source.getUserObject();
+      final Object targetUserObject = target.getUserObject();
+
+      Constraint newConstraint;
+
+      if (sourceUserObject instanceof Variable
+          && targetUserObject instanceof Variable)
+      {
+         newConstraint = new ConceptNetConstraint(type,
+                                                  (Variable) sourceUserObject,
+                                                  (Variable) targetUserObject,
+                                                  inheritance);
+      }
+      else if (sourceUserObject instanceof Variable
                && targetUserObject instanceof String)
-         {
-            newConstraint = new ConceptNetConstraint(type,
-                  (Variable) sourceUserObject,
-                  trimFirstLast((String) targetUserObject),
-                  inheritance);
-         }
-         else // (sourceUserObject instanceof String && targetUserObject instanceof Variable)
-         {
-            newConstraint = new ConceptNetConstraint(type,
-                  trimFirstLast((String) sourceUserObject),
-                  (Variable) targetUserObject,
-                  inheritance);
-         }
-
-         solver.addConstraint(newConstraint);
-
-         // now add the visual constraints
-         addConstraintCell(newConstraint, new DefaultGraphCell[] { source }, new DefaultGraphCell[] { target });
-
-         // TODO: would be nice if some CN and/or WN browsing were integrating in here
-      }
-
-      private static void addWnConstraint(DefaultGraphCell cell1, DefaultGraphCell cell2)
       {
-         final JLabel sourceLabel = new JLabel(cell1.toString());
-         final JLabel targetLabel = new JLabel(cell2.toString());
-
-         final ButtonGroup typeGroup = new ButtonGroup();
-         final JRadioButton hypernym = new JRadioButton("Generalization of");
-         hypernym.setActionCommand("Hypernym");
-         hypernym.setSelected(true);
-         typeGroup.add(hypernym);
-         final JRadioButton hyponym = new JRadioButton("Specialization of");
-         hyponym.setActionCommand("Hyponym");
-         typeGroup.add(hyponym);
-
-         final JButton swapButton = new JButton("Swap source/target");
-         final boolean[] swapped = new boolean[1]; // stupid 1-element boolean so it's something final that we can access in a closure
-         swapped[0] = false;
-         swapButton.addActionListener(new AbstractAction("Swap source/target") {
-            public void actionPerformed(ActionEvent e) {
-               final String temp = sourceLabel.getText();
-               sourceLabel.setText(targetLabel.getText());
-               targetLabel.setText(temp);
-               swapped[0] = !swapped[0];
-            }
-         });
-
-         final Object components[] = {
-            sourceLabel,
-            hypernym,
-            hyponym,
-            targetLabel,
-            swapButton
-         };
-
-         int okOrCancel =
-            JOptionPane.showOptionDialog(frame, components,
-                  "New WordNet constraint", JOptionPane.OK_CANCEL_OPTION,
-                  JOptionPane.QUESTION_MESSAGE, null, null, null);
-         if (okOrCancel == JOptionPane.CANCEL_OPTION)
-            return;
-
-         final boolean isHypernym = typeGroup.getSelection().getActionCommand().equals("Hypernym");
-         final DefaultGraphCell source = swapped[0] ? cell2 : cell1;
-         final DefaultGraphCell target = swapped[0] ? cell1 : cell2;
-
-         // add the underlying constraints
-         final Object sourceUserObject = source.getUserObject();
-         final Object targetUserObject = target.getUserObject();
-
-         Constraint newConstraint;
-
-         if (sourceUserObject instanceof Variable
-               && targetUserObject instanceof Variable)
-         {
-            newConstraint = new WordNetConstraint(
-                  (Variable) sourceUserObject,
-                  (Variable) targetUserObject,
-                  isHypernym);
-         }
-         else if (sourceUserObject instanceof Variable
-               && targetUserObject instanceof String)
-         {
-            newConstraint = new WordNetConstraint(
-                  (Variable) sourceUserObject,
-                  trimFirstLast((String) targetUserObject),
-                  isHypernym);
-         }
-         else // (sourceUserObject instanceof String && targetUserObject instanceof Variable)
-         {
-            newConstraint = new WordNetConstraint(
-                  trimFirstLast((String) sourceUserObject),
-                  (Variable) targetUserObject,
-                  isHypernym);
-         }
-
-         solver.addConstraint(newConstraint);
-
-         // now add the visual constraints
-         addConstraintCell(newConstraint, new DefaultGraphCell[] { source }, new DefaultGraphCell[] { target });
+         newConstraint = new ConceptNetConstraint(type,
+                                                  (Variable) sourceUserObject,
+                                                  trimFirstLast((String) targetUserObject),
+                                                  inheritance);
+      }
+      else // (sourceUserObject instanceof String && targetUserObject instanceof Variable)
+      {
+         newConstraint = new ConceptNetConstraint(type,
+                                                  trimFirstLast((String) sourceUserObject),
+                                                  (Variable) targetUserObject,
+                                                  inheritance);
       }
 
+      solver.addConstraint(newConstraint);
+
+      // now add the visual constraints
+      addConstraintCell(newConstraint, new DefaultGraphCell[] { source }, new DefaultGraphCell[] { target });
+
+      // TODO: would be nice if some CN and/or WN browsing were integrating in here
+   }
+
+   private static void addWnConstraint(DefaultGraphCell cell1, DefaultGraphCell cell2)
+   {
+      final JLabel sourceLabel = new JLabel(cell1.toString());
+      final JLabel targetLabel = new JLabel(cell2.toString());
+
+      final ButtonGroup typeGroup = new ButtonGroup();
+      final JRadioButton hypernym = new JRadioButton("Generalization of");
+      hypernym.setActionCommand("Hypernym");
+      hypernym.setSelected(true);
+      typeGroup.add(hypernym);
+      final JRadioButton hyponym = new JRadioButton("Specialization of");
+      hyponym.setActionCommand("Hyponym");
+      typeGroup.add(hyponym);
+
+      final JButton swapButton = new JButton("Swap source/target");
+      final boolean[] swapped = new boolean[1]; // stupid 1-element boolean so it's something final that we can access in a closure
+      swapped[0] = false;
+      swapButton.addActionListener(new AbstractAction("Swap source/target") {
+         public void actionPerformed(ActionEvent e) {
+            final String temp = sourceLabel.getText();
+            sourceLabel.setText(targetLabel.getText());
+            targetLabel.setText(temp);
+            swapped[0] = !swapped[0];
+         }
+      });
+
+      final Object components[] = {
+         sourceLabel,
+         hypernym,
+         hyponym,
+         targetLabel,
+         swapButton
+      };
+
+      int okOrCancel =
+         JOptionPane.showOptionDialog(frame, components,
+                                      "New WordNet constraint", JOptionPane.OK_CANCEL_OPTION,
+                                      JOptionPane.QUESTION_MESSAGE, null, null, null);
+      if (okOrCancel == JOptionPane.CANCEL_OPTION)
+         return;
+
+      final boolean isHypernym = typeGroup.getSelection().getActionCommand().equals("Hypernym");
+      final DefaultGraphCell source = swapped[0] ? cell2 : cell1;
+      final DefaultGraphCell target = swapped[0] ? cell1 : cell2;
+
+      // add the underlying constraints
+      final Object sourceUserObject = source.getUserObject();
+      final Object targetUserObject = target.getUserObject();
+
+      Constraint newConstraint;
+
+      if (sourceUserObject instanceof Variable
+          && targetUserObject instanceof Variable)
+      {
+         newConstraint = new WordNetConstraint(
+            (Variable) sourceUserObject,
+            (Variable) targetUserObject,
+            isHypernym);
+      }
+      else if (sourceUserObject instanceof Variable
+               && targetUserObject instanceof String)
+      {
+         newConstraint = new WordNetConstraint(
+            (Variable) sourceUserObject,
+            trimFirstLast((String) targetUserObject),
+            isHypernym);
+      }
+      else // (sourceUserObject instanceof String && targetUserObject instanceof Variable)
+      {
+         newConstraint = new WordNetConstraint(
+            trimFirstLast((String) sourceUserObject),
+            (Variable) targetUserObject,
+            isHypernym);
+      }
+
+      solver.addConstraint(newConstraint);
+
+      // now add the visual constraints
+      addConstraintCell(newConstraint, new DefaultGraphCell[] { source }, new DefaultGraphCell[] { target });
    }
 
    // utility function to trim off the first and last chars of a string
