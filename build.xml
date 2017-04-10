@@ -33,7 +33,6 @@
         </jar>
 
         <jar destfile="dist/solver.jar" basedir="build" includes="**/*.class">
-           <zipfileset src="lib/jgraph.jar" includes="**/*.class" />
            <manifest>
               <attribute name="Main-Class" value="solver" />
            </manifest>
