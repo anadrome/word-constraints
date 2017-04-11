@@ -16,11 +16,11 @@ are mapped to game sprites), described in the following paper:
   http://www.kmjn.org/publications/Assistant_IUI08-abstract.html
 
 Bundled dependencies:
-* JGraph by [JGraph Ltd.](http://www.jgraph.com/). Uses the old version now
-  called [legacy JGraph](https://github.com/jgraph/legacy-jgraph5).
-* JWordNet by Oliver Steele
-* ConceptNet by the MIT Common Sense Computing Initiative <http://conceptnet.media.mit.edu/>
+* The [MIT Java Wordnet Interface](https://projects.csail.mit.edu/jwi/), version 2.4.0
+* ConceptNet 3 by the MIT Common Sense Computing Initiative <http://conceptnet.media.mit.edu/>
 * WordNet by the Princeton Cognitive Science Laboratory <http://wordnet.princeton.edu/>
+* JGraph by [JGraph Ltd.](http://www.jgraph.com/) Uses the old version now
+  called [legacy JGraph](https://github.com/jgraph/legacy-jgraph5).
 
 Overview
 ===
