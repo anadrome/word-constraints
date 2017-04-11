@@ -2,11 +2,12 @@ Word constraint tool, using ConceptNet and WordNet
 ===
 Mark J. Nelson <http://www.kmjn.org>, 2007-2008, 2017
 
-Used to define a generative space of interrelated sets of terms by using
-ConceptNet and WordNet to specify constraints on the terms and their
-relationships, and then solving for possible assignments to the terms that
-respect those constraints. Includes a GUI for interactive constraint-graph
-editing.
+Define a generative space by constraints on interrelated sets of terms.
+ConceptNet and WordNet provide background knowledge bases that can be used
+to specify the constraints on these terms and their relationships. A solver
+gives possible assignments to the terms that respect those constraints, and
+an included GUI can be used to iteratively edit and refine the constraint
+graph until you get the desired results.
 
 This code was written for a project to auto-skin simple videogames (the terms
 are mapped to game sprites), described in the following paper:
