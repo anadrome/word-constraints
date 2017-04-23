@@ -18,7 +18,7 @@ are mapped to game sprites), described in the following paper:
 Bundled dependencies:
 * The [MIT Java Wordnet Interface](https://projects.csail.mit.edu/jwi/), version 2.4.0
 * ConceptNet 3 by the MIT Common Sense Computing Initiative <http://conceptnet.media.mit.edu/>
-* WordNet by the Princeton Cognitive Science Laboratory <http://wordnet.princeton.edu/>
+* WordNet 3.1 by the Princeton Cognitive Science Laboratory <http://wordnet.princeton.edu/>
 * JGraph by [JGraph Ltd.](http://www.jgraph.com/) Uses the old version now
   called [legacy JGraph](https://github.com/jgraph/legacy-jgraph5).
 
@@ -94,14 +94,10 @@ Both require the ConceptNet datafile(s) and the WordNet data directory (both
 included) to be in the working directory. They also require more than than
 standard Java heap size to load ConceptNet, so run with e.g. -Xmx300m.
 
-By default it uses an (included) modified version of ConceptNet with only terms
-involving single-word entities, in conceptnet_singlewords.txt. If you want to
+By default it uses a modified version of ConceptNet (included)with only terms
+involving single-word entities, in conceptnet\_singlewords.txt. If you want to
 use the original ConceptNet files, or other files, edit the FILENAMES constant
-in ConceptNet.java and recompile. It uses a slightly older version of WordNet
-due to JWordNet not having been updated to handle later formats. Some of the
-datafiles are also slightly renamed or even duplicated to make sure it'll work
-on Linux/OSX/Windows despite stupid differences in treatment of case
-sensitivity.
+in ConceptNet.java.
 
 GUI
 ---
@@ -157,4 +153,5 @@ and provides a number of utilities to query it. It might be useful by itself
 for other code, though note that it depends on WordNet as well due to
 implementing the inheritance/lifting features.
 
-WordNet.java is just a convenience wrapper on Oliver Steele's JWordNet.
+WordNet.java implements utility functions for finding/testing hypernyms, word
+distance, etc., implemented on top of the JWI library.
