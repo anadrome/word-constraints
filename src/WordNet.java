@@ -31,7 +31,7 @@ public class WordNet
    public WordNet()
       throws IOException
    {
-      dictionary = new Dictionary(new File("wordnet"));
+      dictionary = new Dictionary(new File("dict"));
       dictionary.open();
       stemmer = new WordnetStemmer(dictionary);
    }
