@@ -2,11 +2,12 @@ Word constraint tool, using ConceptNet and WordNet
 ===
 Mark J. Nelson <http://www.kmjn.org>, 2007-2008, 2017
 
-Used to define a generative space of interrelated sets of terms by using
-ConceptNet and WordNet to specify constraints on the terms and their
-relationships, and then solving for possible assignments to the terms that
-respect those constraints. Includes a GUI for interactive constraint-graph
-editing.
+Define a generative space by constraints on interrelated sets of terms.
+ConceptNet and WordNet provide background knowledge bases that can be used
+to specify the constraints on these terms and their relationships. A solver
+gives possible assignments to the terms that respect those constraints, and
+an included GUI can be used to iteratively edit and refine the constraint
+graph until you get the desired results.
 
 This code was written for a project to auto-skin simple videogames (the terms
 are mapped to game sprites), described in the following paper:
@@ -36,11 +37,19 @@ monkey, human, chicken'. The solver would then try to find one of these
 possible animals that satisfies the ConceptNet and WordNet constraints we've
 added to the 'animal' term. We can also specify a default list of possible
 nouns and possible verbs, to use for terms where we don't want to explicitly
-specify a list of possible values. You might wonder why this doesn't default to
-all nouns and verbs in WordNet as possibilities: basically, because the
-constraint solving, at least using the current mostly-brute-force algorithm,
-would be intractable. So you need to pick a smaller subset of possible nouns
-and verbs (it can still be large, just not all words in the English language).
+specify a list of possible values.
+
+Aside: You might wonder why terms' domains don't default to all nouns and verbs
+in WordNet as possibilities. One practical reason is because the constraint
+solving, at least using the current mostly-brute-force algorithm, would be
+intractable (although a quite large domain is fine). However, there are also
+good reasons not to range over all possible words in the English language. In
+the application this library was built for (auto-skinning videogames), nouns
+could only be chosen from among those terms we had sprites for anyway, so this
+was a natural restriction. Perhaps more importantly, ConceptNet is a fairly
+messy database of commonsense knowledge, and it is far easier to produce a
+usable constraint graph (perhaps using the included GUI editor to iteratively
+refine it) if you're working in a smaller, closed domain of terms.
 
 There can also be literal terms, which are equivalent to variable terms with
 exactly one possible value in the domain (but using explicit literals makes the
@@ -91,8 +100,7 @@ while the second takes an already specified constraint graph and produces
 a list of solutions. An ant build file is provided.
 
 Both require the ConceptNet datafile(s) and the WordNet data directory (both
-included) to be in the working directory. They also require more than than
-standard Java heap size to load ConceptNet, so run with e.g. -Xmx300m.
+included) to be in the working directory.
 
 By default it uses a modified version of ConceptNet (included)with only terms
 involving single-word entities, in conceptnet\_singlewords.txt. If you want to
