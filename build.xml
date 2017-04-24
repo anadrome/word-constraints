@@ -27,24 +27,26 @@
 
         <jar destfile="dist/gui.jar" basedir="build" includes="**/*.class">
            <zipfileset src="lib/jgraph-5.13.0.0.jar" includes="**/*.class" />
+           <zipfileset src="lib/edu.mit.jwi_2.4.0.jar" includes="**/*.class" />
            <manifest>
               <attribute name="Main-Class" value="gui" />
            </manifest>
         </jar>
 
         <jar destfile="dist/solver.jar" basedir="build" includes="**/*.class" excludes="**/gui*.class **/SepComboBox*.class">
+           <zipfileset src="lib/edu.mit.jwi_2.4.0.jar" includes="**/*.class" />
            <manifest>
               <attribute name="Main-Class" value="solver" />
            </manifest>
         </jar>
         
         <copy todir="dist" preservelastmodified="true">
-            <fileset dir="datafiles" />
-        </copy>
-
-        <mkdir dir="dist/wordnet" />
-        <copy todir="dist/wordnet" preservelastmodified="true">
-            <fileset dir="wordnet" />
+           <fileset file="datafiles/conceptnet_singlewords.txt.gz" />
+           <tarfileset>
+              <gzipresource>
+                 <file file="datafiles/wn3.1.dict.tar.gz" />
+              </gzipresource>
+           </tarfileset>
         </copy>
     </target>
 

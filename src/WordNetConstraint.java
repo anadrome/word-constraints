@@ -15,7 +15,7 @@
 import java.util.Map;
 import java.util.Set;
 import java.util.HashSet;
-import edu.brandeis.cs.steele.wn.POS;
+import edu.mit.jwi.item.POS;
 
 public class WordNetConstraint
    extends Constraint
@@ -80,7 +80,7 @@ public class WordNetConstraint
       final String targetString = target == null ? targetLiteral : assignment.get(target);
 
       String posString = source != null ? source.type : target.type;
-      POS pos = posString.equals("noun") ? WordNet.NOUN : WordNet.VERB;
+      POS pos = posString.equals("noun") ? POS.NOUN : POS.VERB;
       // if we're checking a constraint where one of the variables hasn't been
       // assigned yet, it passes for now
       if (sourceString == null || targetString == null)

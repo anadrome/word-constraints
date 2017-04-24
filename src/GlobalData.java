@@ -16,10 +16,22 @@ public class GlobalData
    private static GlobalData instance = new GlobalData();
    
    public ConceptNet conceptNet;
-   public WordNet wordNet = new WordNet();
+   public WordNet wordNet;
 
    private GlobalData()
    {
+      System.err.println("Loading WordNet...");
+      System.err.flush();
+      try
+      {
+         wordNet = new WordNet();
+      }
+      catch (IOException e)
+      {
+         throw new RuntimeException("Loading WordNet failed");
+      }
+      System.err.println("...done.\n");
+
       System.err.println("Loading ConceptNet...");
       System.err.flush();
       try
