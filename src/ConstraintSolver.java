@@ -34,21 +34,20 @@ public class ConstraintSolver
    private List<Constraint> constraints;
 
    // default possible values per type
-   private Map<String, List<String>> defaultValues = new HashMap<String, List<String>>();
+   private Map<String, List<String>> defaultValues = new HashMap<>();
 
    // mapping of constraints that are subsumed by other (boolean) constraints
    // to a set of the constraints they're currently subsumed by
-   private Map<Constraint, Set<BooleanConstraint>> subsumedConstraints
-      = new HashMap<Constraint, Set<BooleanConstraint>>();
+   private Map<Constraint, Set<BooleanConstraint>> subsumedConstraints = new HashMap<>();
 
    // a mapping of variables to the constraints that they affect, so we just
    // check relevant constraints after assignment
-   private Map<Variable, List<Constraint>> varsToConstraints = new HashMap<Variable, List<Constraint>>();
+   private Map<Variable, List<Constraint>> varsToConstraints = new HashMap<>();
 
    // mapping of names to variables
-   private Map<String, Variable> namesToVars = new HashMap<String, Variable>();
+   private Map<String, Variable> namesToVars = new HashMap<>();
    // mapping of constraint IDs to constraints
-   private Map<Integer, Constraint> idsToConstraints = new HashMap<Integer, Constraint>();
+   private Map<Integer, Constraint> idsToConstraints = new HashMap<>();
 
    // constraint ID counter-- higher than any existing constraint, so next one
    // gets assigned this ID
@@ -57,16 +56,16 @@ public class ConstraintSolver
    // internal state during a generation run:
    
    // the variable assignment
-   private Map<Variable, String> assignment = new HashMap<Variable, String>();
+   private Map<Variable, String> assignment = new HashMap<>();
    // the set of assignments
-   private List<Map<Variable, String>> assignments = new ArrayList<Map<Variable, String>>();
+   private List<Map<Variable, String>> assignments = new ArrayList<>();
    // the number of assignments
    private int assignmentCounter = 0;
 
    public ConstraintSolver()
    {
-      vars = new ArrayList<Variable>();
-      constraints = new ArrayList<Constraint>();
+      vars = new ArrayList<>();
+      constraints = new ArrayList<>();
    }
 
    /**
@@ -77,11 +76,11 @@ public class ConstraintSolver
     */
    public ConstraintSolver(List<Variable> vars_, List<Constraint> constraints_)
    {
-      vars = new ArrayList<Variable>(vars_);
-      constraints = new ArrayList<Constraint>(constraints_);
+      vars = new ArrayList<>(vars_);
+      constraints = new ArrayList<>(constraints_);
 
       for (Variable var : vars)
-         varsToConstraints.put(var, new ArrayList<Constraint>());
+         varsToConstraints.put(var, new ArrayList<>());
 
       for (Constraint constraint : constraints)
       {
@@ -109,8 +108,8 @@ public class ConstraintSolver
    public ConstraintSolver(String filename)
       throws IOException
    {
-      vars = new ArrayList<Variable>();
-      constraints = new ArrayList<Constraint>();
+      vars = new ArrayList<>();
+      constraints = new ArrayList<>();
       final BufferedReader file = new BufferedReader(new FileReader(filename));
       for (String s = file.readLine(); s != null; s = file.readLine())
       {
@@ -284,7 +283,7 @@ public class ConstraintSolver
    public void addVariable(Variable var)
    {
       vars.add(var);
-      varsToConstraints.put(var, new ArrayList<Constraint>());
+      varsToConstraints.put(var, new ArrayList<>());
       namesToVars.put(var.name, var);
    }
 
@@ -320,7 +319,7 @@ public class ConstraintSolver
       constraint.setID(constraintIdCounter);
       idsToConstraints.put(constraintIdCounter, constraint);
       ++constraintIdCounter;
-      subsumedConstraints.put(constraint, new HashSet<BooleanConstraint>());
+      subsumedConstraints.put(constraint, new HashSet<>());
       
       // remove constraints that have been subsumed by being part of a new
       // boolean constraint 
@@ -353,7 +352,7 @@ public class ConstraintSolver
       idsToConstraints.put(id, constraint);
       if (id > constraintIdCounter)
          constraintIdCounter = id + 1;
-      subsumedConstraints.put(constraint, new HashSet<BooleanConstraint>());
+      subsumedConstraints.put(constraint, new HashSet<>());
       
       // remove constraints that have been subsumed by being part of a new
       // boolean constraint 
@@ -415,7 +414,7 @@ public class ConstraintSolver
     */
    public void setDefaultValues(String type, Collection<String> values)
    {
-      defaultValues.put(type, new ArrayList<String>(values));
+      defaultValues.put(type, new ArrayList<>(values));
    }
 
    /**
@@ -430,7 +429,7 @@ public class ConstraintSolver
       if (def != null)
          return Collections.unmodifiableList(def);
 
-      return new ArrayList<String>();
+      return new ArrayList<>();
    }
 
    /**
@@ -527,7 +526,7 @@ assign:
          if (varIndex == vars.size() - 1)
          {
             // add the assignment to the list
-            assignments.add(new HashMap<Variable, String>(assignment));
+            assignments.add(new HashMap<>(assignment));
             ++assignmentCounter;
             if (assignmentCounter >= limit)
                return;

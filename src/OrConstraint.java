@@ -17,7 +17,7 @@ public class OrConstraint
    extends BooleanConstraint
 {
    private List<Constraint> constraints;
-   private Set<Variable> relVars = new HashSet<Variable>();
+   private Set<Variable> relVars = new HashSet<>();
 
    public OrConstraint(Collection<Constraint> constraints)
    {

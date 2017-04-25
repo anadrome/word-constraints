@@ -22,7 +22,7 @@ public class ConceptNetConstraint
 
    private ConceptNet conceptNet = GlobalData.getInstance().conceptNet;
 
-   private Set<Variable> relVars = new HashSet<Variable>();
+   private Set<Variable> relVars = new HashSet<>();
 
    /**
     * A constraint between two variables.

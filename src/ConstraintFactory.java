@@ -34,7 +34,7 @@ public class ConstraintFactory
       if (nextPos == -1)
          nextPos = s.indexOf(')', pos);
       final String constraintName = s.substring(pos, nextPos);
-      List<Object> args = new ArrayList<Object>();
+      List<Object> args = new ArrayList<>();
       
       pos = nextPos;
       // either a space if (more) args come next, or a ')' if no (more) args
@@ -144,7 +144,7 @@ public class ConstraintFactory
       else if (name.equals("AND") || name.equals("OR") || name.equals("NOT"))
       {
          // params are all subsumed constraint IDs, so substitute references
-         List<Constraint> constraints = new ArrayList<Constraint>();
+         List<Constraint> constraints = new ArrayList<>();
          for (Object arg : args)
          {
             final int id = Integer.valueOf((String)arg);

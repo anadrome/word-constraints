@@ -53,11 +53,11 @@ public class WordNet
    {
       List<String> stems = stemmer.findStems(word, pos);
 
-      List<IWordID> wordids = new ArrayList<IWordID>();
+      List<IWordID> wordids = new ArrayList<>();
       for (String s : stems)
          wordids.addAll(dictionary.getIndexWord(s, pos).getWordIDs());
 
-      List<ISynset> synsets = new ArrayList<ISynset>();
+      List<ISynset> synsets = new ArrayList<>();
       for (IWordID w : wordids)
          synsets.add(dictionary.getWord(w).getSynset());
 
@@ -90,11 +90,11 @@ public class WordNet
    {
       List<ISynset> synsets = getSynsets(pos, word);
 
-      List<IWord> words = new ArrayList<IWord>();
+      List<IWord> words = new ArrayList<>();
       for (ISynset s : synsets)
          words.addAll(s.getWords());
 
-      List<String> synonyms = new ArrayList<String>();
+      List<String> synonyms = new ArrayList<>();
       for (IWord w : words)
          synonyms.add(w.getLemma());
 
@@ -141,7 +141,7 @@ public class WordNet
    public List<String> getHypernyms(POS pos, String word)
    {
       List<ISynset> synsets = getSynsets(pos, word);
-      List<String> hypernyms = new ArrayList<String>();
+      List<String> hypernyms = new ArrayList<>();
       for (ISynset s : synsets)
       {
          List<ISynset> hyps = getHypernyms(s);
@@ -157,7 +157,7 @@ public class WordNet
    /* Internal implementation */
    private List<ISynset> getHypernyms(ISynset synset)
    {
-      List<ISynset> hypernyms = new ArrayList<ISynset>();
+      List<ISynset> hypernyms = new ArrayList<>();
       List<ISynsetID> targets = synset.getRelatedSynsets(Pointer.HYPERNYM);
       for (ISynsetID target : targets)
       {
@@ -175,7 +175,7 @@ public class WordNet
    {
       // TODO: this is structurally identical to getHypernyms, factor out
       List<ISynset> synsets = getSynsets(pos, word);
-      List<String> hyponyms = new ArrayList<String>();
+      List<String> hyponyms = new ArrayList<>();
       for (ISynset s : synsets)
       {
          List<ISynset> hyps = getHyponyms(s);
@@ -191,7 +191,7 @@ public class WordNet
    /* Internal implementation */
    private List<ISynset> getHyponyms(ISynset synset)
    {
-      List<ISynset> hyponyms = new ArrayList<ISynset>();
+      List<ISynset> hyponyms = new ArrayList<>();
       List<ISynsetID> targets = synset.getRelatedSynsets(Pointer.HYPONYM);
       for (ISynsetID target : targets)
       {

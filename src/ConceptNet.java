@@ -59,8 +59,8 @@ public class ConceptNet
    }
    
    /* The relations, indexed by source and target */
-   private Map<String, List<Relation>> outgoing = new HashMap<String, List<Relation>>();
-   private Map<String, List<Relation>> incoming = new HashMap<String, List<Relation>>();
+   private Map<String, List<Relation>> outgoing = new HashMap<>();
+   private Map<String, List<Relation>> incoming = new HashMap<>();
    
    public ConceptNet()
       throws IOException
@@ -94,7 +94,7 @@ public class ConceptNet
    {
       List<Relation> out = outgoing.get(node);
       if (out == null)
-         out = new ArrayList<Relation>();
+         out = new ArrayList<>();
       return Collections.unmodifiableList(out);
    }
 
@@ -105,7 +105,7 @@ public class ConceptNet
    {
       List<Relation> in = incoming.get(node);
       if (in == null)
-         in = new ArrayList<Relation>();
+         in = new ArrayList<>();
       return Collections.unmodifiableList(in);
    }
 
@@ -120,7 +120,7 @@ public class ConceptNet
       /* Note: this is just a copy/paste of shortestPath(String, String, int, List<string>)
        * with the relationTypes checks removed.  Yeah, bad software engineering. */
 
-      List<Relation> path = new LinkedList<Relation>();
+      List<Relation> path = new LinkedList<>();
       if (source.equals(target))
          return path;
 
@@ -178,7 +178,7 @@ public class ConceptNet
 
       /* For now, do iterative deepening, 'cause it's easy to code and "fast enough". */
 
-      List<Relation> path = new LinkedList<Relation>();
+      List<Relation> path = new LinkedList<>();
       if (source.equals(target))
          return path;
 
@@ -363,7 +363,7 @@ public class ConceptNet
       // Also: getHyp*nyms() basically walks synonyms anyway so it'd be faster if
       // that were consolidated instead of a separate getSynonyms() call
 
-      List<String> sourceEquiv = new ArrayList<String>();
+      List<String> sourceEquiv = new ArrayList<>();
       if (inheritance[0] || inheritance[1])
          sourceEquiv.addAll(wordNet.getSynonyms(WordNet.NOUN, source));
       else
@@ -373,7 +373,7 @@ public class ConceptNet
       if (inheritance[1])
          sourceEquiv.addAll(wordNet.getHyponyms(WordNet.NOUN, source));
 
-      List<String> targetEquiv = new ArrayList<String>();
+      List<String> targetEquiv = new ArrayList<>();
       if (inheritance[2] || inheritance[3])
          targetEquiv.addAll(wordNet.getSynonyms(WordNet.NOUN, target));
       else
@@ -444,7 +444,7 @@ public class ConceptNet
       List<Relation> out = outgoing.get(r.source);
       if (out == null)
       {
-         out = new ArrayList<Relation>(1);
+         out = new ArrayList<>(1);
          outgoing.put(r.source, out);
       }
       out.add(r);
@@ -452,7 +452,7 @@ public class ConceptNet
       List<Relation> in = incoming.get(r.target);
       if (in == null)
       {
-         in = new ArrayList<Relation>(1);
+         in = new ArrayList<>(1);
          incoming.put(r.target, in);
       }
       in.add(r);

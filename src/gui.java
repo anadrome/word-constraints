@@ -52,7 +52,7 @@ public class gui
    static JFrame frame = new JFrame("Constraint editor");
    static ConstraintSolver solver = new ConstraintSolver();
    static final JFileChooser fc = new JFileChooser();
-   static Map<Object, DefaultGraphCell> userObjectToCell = new HashMap<Object, DefaultGraphCell>();
+   static Map<Object, DefaultGraphCell> userObjectToCell = new HashMap<>();
    static final Random random = new Random();
 
    public static void main(String[] args)
@@ -366,7 +366,7 @@ public class gui
          // if all the selected nodes are Constraint nodes, let the user
          // add a boolean constraint on top of them
          boolean onlyConstraintsSelected = true;
-         final List<Constraint> selectedConstraints = new ArrayList<Constraint>();
+         final List<Constraint> selectedConstraints = new ArrayList<>();
          for (DefaultGraphCell c : selection)
          {
             Object cellUserObject = c.getUserObject();
@@ -491,7 +491,7 @@ public class gui
             if (okOrCancel == JOptionPane.CANCEL_OPTION)
                return;
 
-            Map<Variable, String> assignment = new HashMap<Variable, String>();
+            Map<Variable, String> assignment = new HashMap<>();
             for (int v = 0; v < numVars; ++v)
                assignment.put(vars.get(v), ((JTextField)components[2*v+1]).getText());
 

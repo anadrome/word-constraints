@@ -26,7 +26,7 @@ public class WordNetConstraint
 
    private WordNet wordNet = GlobalData.getInstance().wordNet;
 
-   private Set<Variable> relVars = new HashSet<Variable>();
+   private Set<Variable> relVars = new HashSet<>();
 
    /**
     * A constraint between two variables.
