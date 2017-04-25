@@ -408,32 +408,6 @@ public class ConceptNet
    }
    
    /**
-     * Version of linkExists that checks synonyms and hypernyms of "source" in
-     * addition, using WordNet.
-     *
-     * TODO: deprecated
-     *
-     * Note: Assumes "source" is a noun for now.
-     */
-   public boolean linkExistsHypernymSource(String type, String source, String target)
-   {
-      return linkExists(type, source, target, new boolean[] { true, false, false, false });
-   }
-
-   /**
-     * Version of linkExists that checks synonyms and hyponyms of "source" in
-     * addition, using WordNet.
-     *
-     * TODO: deprecated
-     *
-     * Note: Assumes "source" is a noun for now.
-     */
-   public boolean linkExistsHyponymSource(String type, String source, String target)
-   {
-      return linkExists(type, source, target, new boolean[] { false, true, false, false });
-   }
-   
-   /**
      * Convert a path to a string, in the format "foo -&gt; bar &lt;- baz".
      *
      * Nodes in order of visitation in the path, with link direction indicated
