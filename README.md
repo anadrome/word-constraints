@@ -163,3 +163,13 @@ implementing the inheritance/lifting features.
 
 WordNet.java implements utility functions for finding/testing hypernyms, word
 distance, etc., implemented on top of the JWI library.
+
+License
+===
+
+Permissively licensed (MIT): You may use this software or derivative works for
+any purpose as long as attribution is provided. The bundled JGraph and JWI
+libraries are also permissively licensed, but under different licenses: JGraph
+is under the 3-clause BSD license plus a patent-termination clause, and JWI is
+under the Creative Commons Attribution (CC-BY) license. See the respective
+LICENSE files for details.
