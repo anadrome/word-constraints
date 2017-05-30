@@ -5,13 +5,8 @@
   * to be present in the working directory.
   *
   * @author Mark J. Nelson
-  * @date   2007-2008
+  * @date   2007-2008, 2017
   */
-
-// maybe TODO: currently some inefficient RAM usage due to every source/target being
-//             stored both inside the Relation and inside the outgoing/incoming indices
-// also along those lines: could turn relation type into an enum instead of having
-//             strings like ConceptuallyRelatedTo stored literally every time
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -28,6 +23,7 @@ import java.util.LinkedList;
 import java.util.Collections;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.function.Function;
 
 public class ConceptNet
 {
@@ -65,6 +61,13 @@ public class ConceptNet
    public ConceptNet()
       throws IOException
    {
+      // DIY string interning to reduce memory usage
+      final Map<String,String> seenStrings = new HashMap<>();
+      Function<String,String> intern = (s) -> {
+          String seen = seenStrings.putIfAbsent(s, s);
+          return (seen == null) ? s : seen;
+      };
+
       /* Match against this pattern, made unreadable due to escaping:
        *    ^\((\S+) "(.*)" "(.*)" ".*")$
        */
@@ -80,7 +83,7 @@ public class ConceptNet
             boolean b = m.matches();
             assert b;
 
-            Relation r = new Relation(m.group(1), m.group(2), m.group(3));
+            Relation r = new Relation(intern.apply(m.group(1)), intern.apply(m.group(2)), intern.apply(m.group(3)));
             addRelation(r);
             ++count;
          }
