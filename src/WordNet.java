@@ -41,11 +41,8 @@ public class WordNet
     */
    public boolean isWord(POS pos, String word)
    {
-      List<String> stems = stemmer.findStems(word, pos);
-      for (String s : stems)
-         if (dictionary.getIndexWord(s, pos) != null)
-            return true;
-      return false;
+      return stemmer.findStems(word, pos).stream()
+         .anyMatch(s -> dictionary.getIndexWord(s, pos) != null);
    }
 
    /* Internal helper function */
@@ -123,16 +120,11 @@ public class WordNet
    /* Internal implementation */
    private boolean isHypernym(ISynset syn1, ISynset syn2)
    {
-      List<ISynsetID> hypernyms = syn2.getRelatedSynsets(Pointer.HYPERNYM);
-      for (ISynsetID hypernym : hypernyms)
-      {
-         ISynset s = dictionary.getSynset(hypernym);
-         if (s.equals(syn1))
-            return true;
-         if (isHypernym(syn1, s))
-            return true;
-      }
-      return false;
+      return syn2.getRelatedSynsets(Pointer.HYPERNYM).stream()
+         .anyMatch(hypernym -> {
+               ISynset s = dictionary.getSynset(hypernym);
+               return s.equals(syn1) || isHypernym(syn1, s);
+            });
    }
 
    /**

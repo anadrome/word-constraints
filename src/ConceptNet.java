@@ -63,16 +63,12 @@ public class ConceptNet
    {
       // DIY string interning to reduce memory usage
       final Map<String,String> seenStrings = new HashMap<>();
-      Function<String,String> intern = (s) -> {
-          String seen = seenStrings.putIfAbsent(s, s);
-          return (seen == null) ? s : seen;
-      };
+      Function<String,String> intern = s -> seenStrings.computeIfAbsent(s, Function.identity());
 
       /* Match against this pattern, made unreadable due to escaping:
        *    ^\((\S+) "(.*)" "(.*)" ".*")$
        */
       Pattern regex = Pattern.compile("^\\((\\S+) \"(.*)\" \"(.*)\" \".*\"\\)$");
-      int count = 0;
       for (String filename : FILENAMES)
       {
 	 BufferedReader file = new BufferedReader(new InputStreamReader(new GZIPInputStream(new FileInputStream(filename))));
@@ -84,8 +80,8 @@ public class ConceptNet
             assert b;
 
             Relation r = new Relation(intern.apply(m.group(1)), intern.apply(m.group(2)), intern.apply(m.group(3)));
-            addRelation(r);
-            ++count;
+            outgoing.computeIfAbsent(r.source, k -> new ArrayList<Relation>(1)).add(r);
+            incoming.computeIfAbsent(r.target, k -> new ArrayList<Relation>(1)).add(r);
          }
       }
    }
@@ -95,10 +91,7 @@ public class ConceptNet
      */
    public List<Relation> getOutgoing(String node)
    {
-      List<Relation> out = outgoing.get(node);
-      if (out == null)
-         out = new ArrayList<>();
-      return Collections.unmodifiableList(out);
+      return Collections.unmodifiableList(outgoing.getOrDefault(node, new ArrayList<Relation>()));
    }
 
    /**
@@ -106,10 +99,7 @@ public class ConceptNet
      */
    public List<Relation> getIncoming(String node)
    {
-      List<Relation> in = incoming.get(node);
-      if (in == null)
-         in = new ArrayList<>();
-      return Collections.unmodifiableList(in);
+      return Collections.unmodifiableList(incoming.getOrDefault(node, new ArrayList<Relation>()));
    }
 
    /**
@@ -302,17 +292,8 @@ public class ConceptNet
     */
    public boolean linkExists(String type, String source, String target)
    {
-      final List<Relation> out = outgoing.get(source);
-      if (out == null)
-         return false;
-
-      for (Relation r : out)
-      {
-         if (r.type.equals(type) && r.target.equals(target))
-            return true;
-      }
-
-      return false;
+      return getOutgoing(source).stream()
+         .anyMatch(r -> r.type.equals(type) && r.target.equals(target));
    }
    
    public boolean linkExists(String type, String source, String target,
@@ -438,27 +419,4 @@ public class ConceptNet
       ret = ret + cur;
       return ret;
    }
-      
-   
-   /* private utility stuff */
-
-   private void addRelation(Relation r)
-   {
-      List<Relation> out = outgoing.get(r.source);
-      if (out == null)
-      {
-         out = new ArrayList<>(1);
-         outgoing.put(r.source, out);
-      }
-      out.add(r);
-
-      List<Relation> in = incoming.get(r.target);
-      if (in == null)
-      {
-         in = new ArrayList<>(1);
-         incoming.put(r.target, in);
-      }
-      in.add(r);
-   }
-
 }

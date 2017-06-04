@@ -2,7 +2,7 @@
  * Solve a set of constraints, using a fairly naive brute-force method.
  *
  * @author Mark J. Nelson
- * @date   2007-2008
+ * @date   2007-2008, 2017
  */
 
 // implementation note: the original Variable and Constraint objects are
@@ -425,11 +425,7 @@ public class ConstraintSolver
     */
    public List<String> getDefaultValues(String type)
    {
-      List<String> def = defaultValues.get(type);
-      if (def != null)
-         return Collections.unmodifiableList(def);
-
-      return new ArrayList<>();
+      return Collections.unmodifiableList(defaultValues.getOrDefault(type, new ArrayList<String>()));
    }
 
    /**

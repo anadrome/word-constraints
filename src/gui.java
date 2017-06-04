@@ -2,7 +2,7 @@
  * The GUI editing front end.
  *
  * @author Mark J. Nelson
- * @date   2007-2008
+ * @date   2007-2008, 2017
  */
 
 import org.jgraph.*;
