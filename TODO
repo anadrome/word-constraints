@@ -1,0 +1,21 @@
+to make open-domain nodes work
+
+definition-side stuff:
+-- null can't mean "default", instead means "open domain"
+-- instead, define domains with something like
+   domain sprites: a, b, c
+ -- then a variable can reference: 1) none, 2) a domain, 3) an explicit list
+   -- need to syntactically distinguish #2 and #3
+
+solver-side stuff:
+-- open-domain vars can never appear somewhere where we want to start by iterating over the domain
+  -- must be constrained by a relation to a closed-domain var.
+  -- in that case, we can start by iterating over that one, though this
+     requires some logic instead of just arbitrarily walking the constraint graph as
+     we do now
+  -- need some way of walking that does things correctly when the graph meets these constraints,
+     and errors out when not.
+
+BUT
+-- do we really need this?
+-- can we use CN5's query stuff to get it instead? is that easier or harder?
