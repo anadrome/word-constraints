@@ -5,7 +5,7 @@
   * to be present in the working directory.
   *
   * @author Mark J. Nelson
-  * @date   2007-2008, 2017
+  * @date   2007-2008, 2017-2018
   */
 
 import java.io.BufferedReader;
@@ -339,29 +339,15 @@ public class ConceptNet
             || !wordNet.isWord(WordNet.NOUN, source))
          return false;
 
-      // now check the inheritance stuff
-
-      // TODO: it'd be faster if we short-circuited upon success instead of first
-      // collecting all the equivs and then checking them, but that makes the
-      // cn/wn separation less nice code-wise, unless we write an iterator in wn
-      // Also: getHyp*nyms() basically walks synonyms anyway so it'd be faster if
-      // that were consolidated instead of a separate getSynonyms() call
-
       List<String> sourceEquiv = new ArrayList<>();
-      if (inheritance[0] || inheritance[1])
-         sourceEquiv.addAll(wordNet.getSynonyms(WordNet.NOUN, source));
-      else
-         sourceEquiv.add(source);
+      sourceEquiv.add(source);
       if (inheritance[0])
          sourceEquiv.addAll(wordNet.getHypernyms(WordNet.NOUN, source));
       if (inheritance[1])
          sourceEquiv.addAll(wordNet.getHyponyms(WordNet.NOUN, source));
 
       List<String> targetEquiv = new ArrayList<>();
-      if (inheritance[2] || inheritance[3])
-         targetEquiv.addAll(wordNet.getSynonyms(WordNet.NOUN, target));
-      else
-         targetEquiv.add(target);
+      targetEquiv.add(target);
       if (inheritance[2])
          targetEquiv.addAll(wordNet.getHypernyms(WordNet.NOUN, target));
       if (inheritance[3])

@@ -1,8 +1,11 @@
 /**
   * A high-level interface to WordNet with useful utility functions, backed by JWI.
   *
+  * Note that when looking up words with multiple meanings, the first sense
+  * (first synset) for the specified part of speech is always used.
+  *
   * @author Mark J. Nelson
-  * @date   2007,2017
+  * @date   2007,2017-2018
   */
 
 import edu.mit.jwi.IDictionary;
@@ -26,14 +29,12 @@ public class WordNet
    public static final POS ADV = POS.ADVERB;
 
    private IDictionary dictionary;
-   private IStemmer stemmer;
 
    public WordNet()
       throws IOException
    {
       dictionary = new Dictionary(new File("dict"));
       dictionary.open();
-      stemmer = new WordnetStemmer(dictionary);
    }
 
    /**
@@ -41,61 +42,16 @@ public class WordNet
     */
    public boolean isWord(POS pos, String word)
    {
-      return stemmer.findStems(word, pos).stream()
-         .anyMatch(s -> dictionary.getIndexWord(s, pos) != null);
+      return dictionary.getIndexWord(word, pos) != null;
    }
 
-   /* Internal helper function */
-   private List<ISynset> getSynsets(POS pos, String word)
+   /* Get the first/primary synset of a word (internal function) */
+   private ISynset getSynset(POS pos, String word)
    {
-      List<String> stems = stemmer.findStems(word, pos);
-
-      List<IWordID> wordids = new ArrayList<>();
-      for (String s : stems)
-         wordids.addAll(dictionary.getIndexWord(s, pos).getWordIDs());
-
-      List<ISynset> synsets = new ArrayList<>();
-      for (IWordID w : wordids)
-         synsets.add(dictionary.getWord(w).getSynset());
-
-      return synsets;
-   }
-
-   /**
-     * Check if two words are synonymous, in any of their senses.
-     *
-     * Note that this is faster than calling getSynonyms and then checking for
-     * overlaps in the lists (because it tests at the level of synsets, not
-     * expanding out the words in each synset).
-     */
-   public boolean isSynonym(POS pos1, String word1, POS pos2, String word2)
-   {
-      List<ISynset> synsets1 = getSynsets(pos1, word1);
-      List<ISynset> synsets2 = getSynsets(pos2, word2);
-      for (ISynset s1 : synsets1)
-         for (ISynset s2 : synsets2)
-            if (s1.equals(s2))
-               return true;
-      return false;
-   }
-   
-   /**
-     * Get all the words in a word's synonym set (including itself), for any of
-     * its senses of the same part of speech.
-     */
-   public List<String> getSynonyms(POS pos, String word)
-   {
-      List<ISynset> synsets = getSynsets(pos, word);
-
-      List<IWord> words = new ArrayList<>();
-      for (ISynset s : synsets)
-         words.addAll(s.getWords());
-
-      List<String> synonyms = new ArrayList<>();
-      for (IWord w : words)
-         synonyms.add(w.getLemma());
-
-      return synonyms;
+      if (!isWord(pos, word))
+         throw new RuntimeException("Word not in WordNet: " + word);
+      IWordID wordID = dictionary.getIndexWord(word, pos).getWordIDs().get(0);
+      return dictionary.getWord(wordID).getSynset();
    }
 
    /**
@@ -107,15 +63,10 @@ public class WordNet
      */
    public boolean isHypernym(POS pos1, String word1, POS pos2, String word2)
    {
-      List<ISynset> synsets1 = getSynsets(pos1, word1);
-      List<ISynset> synsets2 = getSynsets(pos2, word2);
+      ISynset syn1 = getSynset(pos1, word1);
+      ISynset syn2 = getSynset(pos2, word2);
 
-      for (ISynset s1 : synsets1)
-         for (ISynset s2 : synsets2)
-            if (isHypernym(s1, s2))
-               return true;
-
-      return false;
+      return isHypernym(syn1, syn2);
    }
    /* Internal implementation */
    private boolean isHypernym(ISynset syn1, ISynset syn2)
@@ -132,17 +83,13 @@ public class WordNet
      */
    public List<String> getHypernyms(POS pos, String word)
    {
-      List<ISynset> synsets = getSynsets(pos, word);
       List<String> hypernyms = new ArrayList<>();
-      for (ISynset s : synsets)
+      List<ISynset> hyps = getHypernyms(getSynset(pos, word));
+      for (ISynset hyp : hyps)
       {
-         List<ISynset> hyps = getHypernyms(s);
-         for (ISynset hyp : hyps)
-         {
-            List<IWord> hypWords = hyp.getWords();
-            for (IWord hypWord : hypWords)
-               hypernyms.add(hypWord.getLemma());
-         }
+         List<IWord> hypWords = hyp.getWords();
+         for (IWord hypWord : hypWords)
+            hypernyms.add(hypWord.getLemma());
       }
       return hypernyms;
    }
@@ -166,17 +113,13 @@ public class WordNet
    public List<String> getHyponyms(POS pos, String word)
    {
       // TODO: this is structurally identical to getHypernyms, factor out
-      List<ISynset> synsets = getSynsets(pos, word);
       List<String> hyponyms = new ArrayList<>();
-      for (ISynset s : synsets)
+      List<ISynset> hyps = getHyponyms(getSynset(pos, word));
+      for (ISynset hyp : hyps)
       {
-         List<ISynset> hyps = getHyponyms(s);
-         for (ISynset hyp : hyps)
-         {
-            List<IWord> hypWords = hyp.getWords();
-            for (IWord hypWord : hypWords)
-               hyponyms.add(hypWord.getLemma());
-         }
+         List<IWord> hypWords = hyp.getWords();
+         for (IWord hypWord : hypWords)
+            hyponyms.add(hypWord.getLemma());
       }
       return hyponyms;
    }
@@ -206,18 +149,12 @@ public class WordNet
        * enough" for most purposes.
        */
 
-      List<ISynset> synsets1 = getSynsets(pos, word1);
-      List<ISynset> synsets2 = getSynsets(pos, word2);
+      ISynset synset1 = getSynset(pos, word1);
+      ISynset synset2 = getSynset(pos, word2);
       int minDistance = maxHops;
-      for (ISynset synset1 : synsets1)
-      {
-         for (ISynset synset2 : synsets2)
-         {
-            final int dist = wordDistance(synset1, synset2, maxHops);
-            if (dist < minDistance)
-               minDistance = dist;
-         }
-      }
+      final int dist = wordDistance(synset1, synset2, maxHops);
+      if (dist < minDistance)
+         minDistance = dist;
       return minDistance;
    }
    /* Internal implementation */
@@ -266,15 +203,12 @@ public class WordNet
        * enough" for most purposes.
        */
 
-      List<ISynset> synsets = getSynsets(NOUN, query);
+      ISynset synset = getSynset(NOUN, query);
       for (int i = 1; i <= maxHops; ++i)
       {
-         for (ISynset synset : synsets)
-         {
-            String s = closestNounInSet(synset, set, i);
-            if (s != null)
-               return s;
-         }
+         String s = closestNounInSet(synset, set, i);
+         if (s != null)
+            return s;
       }
       return null;
    }
