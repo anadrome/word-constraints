@@ -28,7 +28,7 @@ public class NotConstraint
 
    public String howSatisfied(Variable var, Map<Variable, String> assignment)
    {
-      return "NOT: FIXME with something useful here";
+      return "NOT (" + constraint.howSatisfied(var, assignment) + ")";
    }
 
    public Set<Variable> relevantVars()

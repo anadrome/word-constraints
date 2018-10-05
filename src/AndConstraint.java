@@ -37,8 +37,10 @@ public class AndConstraint
 
    public String howSatisfied(Variable var, Map<Variable, String> assignment)
    {
-      // FIXME: is this what we really want to print?
-      return "AND: all conjuncts satisfied";
+      String result = "AND: ";
+      for (Constraint c : constraints)
+         result += "(" + c.howSatisfied(var, assignment) + ") ";
+      return result;
    }
 
    public Set<Variable> relevantVars()

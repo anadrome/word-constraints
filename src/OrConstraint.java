@@ -37,7 +37,10 @@ public class OrConstraint
 
    public String howSatisfied(Variable var, Map<Variable, String> assignment)
    {
-      return "OR: FIXME with something useful here";
+      for (Constraint c : constraints)
+         if (c.check(assignment))
+            return "OR satisfied by: " + c.howSatisfied(var, assignment);
+      return "";
    }
 
    public Set<Variable> relevantVars()

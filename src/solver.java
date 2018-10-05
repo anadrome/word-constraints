@@ -5,7 +5,7 @@
  * them to the standard output.
  *
  * @author Mark J. Nelson
- * @date   2008
+ * @date   2008,2018
  */
 
 import java.util.List;
@@ -21,7 +21,7 @@ public class solver
       {
          if (args.length != 2)
          {
-            System.err.println("Usage: java -Xmx300m -jar solver.jar constraintFilename maxSolutions");
+            System.err.println("Usage: java -jar solver.jar constraintFilename maxSolutions");
             return;
          }
 
@@ -33,7 +33,19 @@ public class solver
          {
             for (Map.Entry<Variable, String> e : assignment.entrySet())
                System.out.println(e.getKey().name + ": " + e.getValue());
+
+            System.out.println();
+            System.out.println("Why?");
+            for (Map.Entry<Variable, String> e : assignment.entrySet())
+               for (String s : solver.howSatisfied(e.getKey(), assignment))
+               {
+                  System.out.print(e.getKey().name + ": ");
+                  System.out.println(s);
+               }
+
+            System.out.println();
             System.out.println("---");
+            System.out.println();
          }
       }
       catch (Exception e)

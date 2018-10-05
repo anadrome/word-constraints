@@ -9,7 +9,7 @@
  * TODO: currently assume everything is either a noun or verb
  *
  * @author Mark J. Nelson
- * @date 2008
+ * @date 2008,2018
  */
 
 import java.util.Map;
@@ -98,7 +98,7 @@ public class WordNetConstraint
       // we should only get complete assignments
       assert sourceString != null && targetString != null;
 
-      return "FIXME: something here";
+      return sourceString + " --(WordNet)--> " + targetString;
    }
 
    public Set<Variable> relevantVars()

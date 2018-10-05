@@ -20,7 +20,7 @@ public class GlobalData
 
    private GlobalData()
    {
-      System.err.println("Loading WordNet...");
+      System.err.print("Loading...");
       System.err.flush();
       try
       {
@@ -30,10 +30,7 @@ public class GlobalData
       {
          throw new RuntimeException("Loading WordNet failed");
       }
-      System.err.println("...done.\n");
 
-      System.err.println("Loading ConceptNet...");
-      System.err.flush();
       try
       {
          conceptNet = new ConceptNet();
@@ -42,7 +39,7 @@ public class GlobalData
       {
          throw new RuntimeException("Loading ConceptNet failed");
       }
-      System.err.println("...done.\n");
+      System.err.println(" done.\n");
    }
 
    public static GlobalData getInstance()
